@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use hotkeys::{setup_hotkeys, update_from_sudoku};
-use leptos_dom::logging::console_error;
+use leptos_dom::logging::{console_error, console_log};
 use leptos_hotkeys::{provide_hotkeys_context, scopes, HotkeysContext};
 use rust_sudoku_solver::Sudoku;
 use state::{decompress_string, Cell, GameState, SudokuData};
@@ -193,6 +193,7 @@ fn SudokuDisplay() -> impl IntoView {
                 .ok()
                 .and_then(|p| p.sudoku.clone())
                 .map(|s| decompress_string(&s))
+                .inspect(|s| console_log(&format!("Decompressed: {}", s)))
                 .filter(|s| is_valid_game_str(s))
                 .and_then(|s| Sudoku::from_str(&s).ok())
                 .unwrap_or_default()
