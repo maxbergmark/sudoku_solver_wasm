@@ -1,9 +1,14 @@
-use hotkeys::setup_hotkeys;
+use std::str::FromStr;
+
+use hotkeys::{setup_hotkeys, update_from_sudoku};
+use leptos_dom::logging::console_error;
 use leptos_hotkeys::{provide_hotkeys_context, scopes, HotkeysContext};
-use state::{Cell, GameState, SudokuData};
+use rust_sudoku_solver::Sudoku;
+use state::{decompress_string, Cell, GameState, SudokuData};
 
 use leptos::*;
 use leptos_meta::provide_meta_context;
+use leptos_router::{use_query, Params, Route, Router, Routes};
 
 mod hotkeys;
 mod state;
@@ -20,43 +25,57 @@ fn CellChoice(idx: usize, show: bool) -> impl IntoView {
 }
 
 fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div> {
-    view! {
-        <div
-            style="font-size: min(1vw, 1vh);"
-            class="flex flex-col w-full h-full font-serif text-slate-500"
-        >
-            <div class="flex flex-row basis-1/3">
-                <CellChoice idx=0 show=choices[0] />
-                <CellChoice idx=1 show=choices[1] />
-                <CellChoice idx=2 show=choices[2] />
-            </div>
-            <div class="flex flex-row basis-1/3">
-                <CellChoice idx=3 show=choices[3] />
-                <CellChoice idx=4 show=choices[4] />
-                <CellChoice idx=5 show=choices[5] />
-            </div>
-            <div class="flex flex-row basis-1/3">
-                <CellChoice idx=6 show=choices[6] />
-                <CellChoice idx=7 show=choices[7] />
-                <CellChoice idx=8 show=choices[8] />
-            </div>
+    if choices.iter().all(|&b| b) {
+        view! { <div class="flex flex-col w-full h-full" /> }
+    } else {
+        view! {
+            <div
+                style="font-size: min(1vw, 1vh);"
+                class="flex flex-col w-full h-full font-serif text-slate-500"
+            >
+                <div class="flex flex-row basis-1/3">
+                    <CellChoice idx=0 show=choices[0] />
+                    <CellChoice idx=1 show=choices[1] />
+                    <CellChoice idx=2 show=choices[2] />
+                </div>
+                <div class="flex flex-row basis-1/3">
+                    <CellChoice idx=3 show=choices[3] />
+                    <CellChoice idx=4 show=choices[4] />
+                    <CellChoice idx=5 show=choices[5] />
+                </div>
+                <div class="flex flex-row basis-1/3">
+                    <CellChoice idx=6 show=choices[6] />
+                    <CellChoice idx=7 show=choices[7] />
+                    <CellChoice idx=8 show=choices[8] />
+                </div>
 
-        </div>
+            </div>
+        }
     }
 }
 
 #[component]
 fn CellInside(row: usize, col: usize) -> impl IntoView {
-    let sudoku = use_context::<RwSignal<SudokuData>>().unwrap();
+    let sudoku = use_context::<RwSignal<SudokuData>>().unwrap_or_else(|| {
+        console_error("SudokuData not available");
+        panic!("SudokuData not available");
+    });
     view! {
         {move || {
             sudoku
                 .with(|sudoku| match sudoku.get(row, col) {
                     Cell::Empty { choices } => render_choices(choices),
-                    Cell::Value(v) => {
+                    Cell::Value { value, .. } => {
                         view! {
                             <div>
-                                <p class="min-h-0 leading-none">{*v}</p>
+                                <p class="min-h-0 leading-none">{*value}</p>
+                            </div>
+                        }
+                    }
+                    Cell::FixedValue { value } => {
+                        view! {
+                            <div>
+                                <p class="min-h-0 leading-none text-sky-700">{*value}</p>
                             </div>
                         }
                     }
@@ -67,25 +86,28 @@ fn CellInside(row: usize, col: usize) -> impl IntoView {
 
 fn get_cell_classes(is_selected: bool) -> &'static str {
     if is_selected {
-        "border-gray-800 border hover:border-2 hover:bg-gray-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none font-serif"
+        "border-gray-800 border hover:border-2 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none font-serif"
     } else {
-        "border-gray-800 border hover:border-2 hover:bg-gray-100 flex justify-center items-center basis-1/3 select-none font-serif"
+        "border-gray-800 border hover:border-2 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none font-serif"
     }
 }
 
 #[component]
 fn SudokuCell(row: usize, col: usize) -> impl IntoView {
-    let game_state = use_context::<RwSignal<GameState>>().unwrap();
-
+    let game_state = use_context::<RwSignal<GameState>>().unwrap_or_else(|| {
+        console_error("GameState not available");
+        panic!("GameState not available");
+    });
     view! {
         <div
             style="font-size: min(4vw, 4vh);"
             class=move || {
-                if let Some((r, c)) = game_state.with(|game_state| game_state.active_cell) {
-                    get_cell_classes(r == row && c == col)
-                } else {
-                    get_cell_classes(false)
-                }
+                with!(
+                    |game_state| {
+                        let is_selected = game_state.active_cell.map(|(r, c)| r == row && c == col).unwrap_or(false);
+                        get_cell_classes(is_selected)
+                    }
+                )
             }
             on:click=move |_| {
                 game_state
@@ -146,21 +168,56 @@ fn SudokuGrid() -> impl IntoView {
     }
 }
 
+#[derive(Params, PartialEq, Debug)]
+struct GameStr {
+    sudoku: Option<String>,
+}
+
+fn is_valid_game_str(game_str: &str) -> bool {
+    game_str.len() == 81 && game_str.chars().all(|c| c.is_ascii_digit() || c == '.')
+}
+
 #[component]
 fn SudokuDisplay() -> impl IntoView {
-    let sudoku = use_context::<RwSignal<SudokuData>>().unwrap();
+    let sudoku_data = use_context::<RwSignal<SudokuData>>().unwrap_or_else(|| {
+        console_error("SudokuData not available");
+        panic!("SudokuData not available");
+    });
+
+    let params = use_query::<GameStr>();
+
+    let sudoku = move || {
+        params.with(|params| {
+            params
+                .as_ref()
+                .ok()
+                .and_then(|p| p.sudoku.clone())
+                .map(|s| decompress_string(&s))
+                .filter(|s| is_valid_game_str(s))
+                .and_then(|s| Sudoku::from_str(&s).ok())
+                .unwrap_or_default()
+        })
+    };
 
     view! {
-        <div class="bg-slate-100 rounded-3xl p-4">
-            <p class="font-mono">{move || sudoku().to_string()}</p>
+        {move || {
+            sudoku_data
+                .update(|sudoku_data| {
+                    update_from_sudoku(sudoku_data, &sudoku(), true);
+                })
+        }}
+        <div class="bg-slate-100 rounded-3xl p-4 shadow-lg">
+            <p class="font-mono">{move || sudoku_data().to_string()}</p>
+            <p class="font-mono text-slate-400">{move || sudoku_data().to_compressed()}</p>
         </div>
     }
 }
 
 #[component]
 fn SudokuGame() -> impl IntoView {
-    let game_state = create_rw_signal(GameState::default());
     let sudoku = create_rw_signal(SudokuData::default());
+    let game_state = create_rw_signal(GameState::default());
+
     provide_context(game_state);
     provide_context(sudoku);
     setup_hotkeys(game_state, sudoku);
@@ -184,9 +241,13 @@ fn App() -> impl IntoView {
     let HotkeysContext { .. } = provide_hotkeys_context(main_ref, false, scopes!());
 
     view! {
-        <main _ref=main_ref>
-            <SudokuGame />
-        </main>
+        <Router>
+            <main _ref=main_ref>
+                <Routes>
+                    <Route path="/" view=SudokuGame />
+                </Routes>
+            </main>
+        </Router>
     }
 }
 
