@@ -8,7 +8,7 @@ use state::{decompress_string, Cell, GameState, SudokuData};
 
 use leptos::*;
 use leptos_meta::provide_meta_context;
-use leptos_router::{use_query, Params, Route, Router, Routes};
+use leptos_router::{use_query, Params, Route, Router, Routes, TrailingSlash};
 
 mod hotkeys;
 mod state;
@@ -245,6 +245,12 @@ fn App() -> impl IntoView {
             <main _ref=main_ref>
                 <Routes>
                     <Route path="/" view=SudokuGame />
+                    <Route
+                        path="/sudoku_solver_wasm"
+                        trailing_slash=TrailingSlash::Redirect
+                        view=SudokuGame
+                    />
+                    <Route path="/*any" view=move || view! { <p>"Page not found"</p> } />
                 </Routes>
             </main>
         </Router>
