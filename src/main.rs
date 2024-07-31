@@ -247,8 +247,8 @@ fn App() -> impl IntoView {
                 <Routes>
                     <Route path="/" view=SudokuGame />
                     <Route
-                        path="/sudoku_solver_wasm"
-                        trailing_slash=TrailingSlash::Redirect
+                        path="/sudoku_solver_wasm/"
+                        trailing_slash=TrailingSlash::Exact
                         view=SudokuGame
                     />
                     <Route path="/*any" view=move || view! { <p>"Page not found"</p> } />
