@@ -1,3 +1,4 @@
+use crate::Result;
 use std::fmt::Display;
 use web_time::Instant;
 
@@ -28,6 +29,16 @@ impl Default for Cell {
 pub struct GameState {
     pub active_cell: Option<(usize, usize)>,
     pub last_key_press: Option<Instant>,
+    pub message: Option<String>,
+}
+
+impl GameState {
+    pub fn show_result(&mut self, result: Result<impl Display>) {
+        match result {
+            Ok(v) => self.message = Some(v.to_string()),
+            Err(e) => self.message = Some(e.to_string()),
+        }
+    }
 }
 
 impl SudokuData {
@@ -130,7 +141,11 @@ impl SudokuData {
 pub fn compress_string(s: &str) -> String {
     let mut compressed = String::new();
     let mut count = 0;
-    let mut last_char = s.chars().next().unwrap();
+    let mut last_char = match s.chars().next() {
+        Some(c) => c,
+        None => return compressed,
+    };
+
     for c in s.chars() {
         if c == last_char {
             if count == 52 {
@@ -158,17 +173,17 @@ pub fn compress_string(s: &str) -> String {
     compressed
 }
 
-pub fn decompress_string(s: &str) -> String {
+pub fn decompress_string(s: &str) -> Option<String> {
     let mut decompressed = String::new();
     for c in s.chars() {
         if let Some(idx) = get_count(c) {
-            let letter = decompressed.pop().unwrap();
+            let letter = decompressed.pop()?;
             decompressed.push_str(&letter.to_string().repeat(idx + 1));
         } else {
             decompressed.push(c);
         }
     }
-    decompressed
+    Some(decompressed)
 }
 
 fn get_count(c: char) -> Option<usize> {
@@ -206,39 +221,46 @@ impl Display for SudokuData {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
-    #[test]
-    fn test_compress_string() {
-        assert_eq!(compress_string("1"), "1");
-        assert_eq!(compress_string("11"), "1b");
-        assert_eq!(compress_string("111111111"), "1i");
-        assert_eq!(compress_string("111111112"), "1h2");
-        assert_eq!(compress_string("111111122"), "1g2b");
-        assert_eq!(compress_string("111111222"), "1f2c");
-        assert_eq!(compress_string("111112222"), "1e2d");
-        assert_eq!(compress_string("111122222"), "1d2e");
-        assert_eq!(compress_string("111222222"), "1c2f");
-        assert_eq!(compress_string("112222222"), "1b2g");
-        assert_eq!(compress_string("122222222"), "12h");
-        assert_eq!(compress_string("222222222"), "2i");
-        assert_eq!(compress_string("1....2"), "1.d2");
+    #[rstest]
+    #[case("", "")]
+    #[case("1", "1")]
+    #[case("11", "1b")]
+    #[case("111111111", "1i")]
+    #[case("111111112", "1h2")]
+    #[case("111111122", "1g2b")]
+    #[case("111111222", "1f2c")]
+    #[case("111112222", "1e2d")]
+    #[case("111122222", "1d2e")]
+    #[case("111222222", "1c2f")]
+    #[case("112222222", "1b2g")]
+    #[case("122222222", "12h")]
+    #[case("222222222", "2i")]
+    #[case("1....2", "1.d2")]
+    fn test_compress_string(#[case] input: &str, #[case] expected: &str) {
+        assert_eq!(compress_string(input), expected);
     }
 
-    #[test]
-    fn test_decompress_string() {
-        assert_eq!(decompress_string("1"), "1");
-        assert_eq!(decompress_string("1b"), "11");
-        assert_eq!(decompress_string("1i"), "111111111");
-        assert_eq!(decompress_string("1h2"), "111111112");
-        assert_eq!(decompress_string("1g2b"), "111111122");
-        assert_eq!(decompress_string("1f2c"), "111111222");
-        assert_eq!(decompress_string("1e2d"), "111112222");
-        assert_eq!(decompress_string("1d2e"), "111122222");
-        assert_eq!(decompress_string("1c2f"), "111222222");
-        assert_eq!(decompress_string("1b2g"), "112222222");
-        assert_eq!(decompress_string("12h"), "122222222");
-        assert_eq!(decompress_string("2i"), "222222222");
-        assert_eq!(decompress_string("1.d2"), "1....2");
+    #[rstest]
+    #[case("", Some(""))]
+    #[case("1", Some("1"))]
+    #[case("1b", Some("11"))]
+    #[case("1i", Some("111111111"))]
+    #[case("1h2", Some("111111112"))]
+    #[case("1g2b", Some("111111122"))]
+    #[case("1f2c", Some("111111222"))]
+    #[case("1e2d", Some("111112222"))]
+    #[case("1d2e", Some("111122222"))]
+    #[case("1c2f", Some("111222222"))]
+    #[case("1b2g", Some("112222222"))]
+    #[case("12h", Some("122222222"))]
+    #[case("2i", Some("222222222"))]
+    #[case("1.d2", Some("1....2"))]
+    #[case("d", None)]
+    fn test_decompress_string(#[case] input: &str, #[case] expected: Option<&str>) {
+        assert_eq!(decompress_string(input), expected.map(|s| s.to_string()));
     }
 }
