@@ -4,7 +4,9 @@ use ev::MouseEvent;
 use hotkeys::{apply_constraint, setup_hotkeys, solve_sudoku, update_from_sudoku};
 use leptos_dom::logging::{console_error, console_log};
 use leptos_hotkeys::{provide_hotkeys_context, scopes, HotkeysContext};
-use rust_sudoku_solver::{check_all_visible_doubles, place_all_hidden_singles, place_all_visible_singles, solver, Sudoku};
+use rust_sudoku_solver::{
+    check_all_visible_doubles, place_all_hidden_singles, place_all_visible_singles, solver, Sudoku,
+};
 use state::{decompress_string, Cell, GameState, SudokuData};
 
 use leptos::*;
@@ -32,7 +34,7 @@ fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div>
         view! {
             <div
                 style="font-size: min(1vw, 1vh);"
-                class="flex flex-col w-full h-full font-serif text-slate-500"
+                class="flex flex-col w-full h-full text-slate-500"
             >
                 <div class="flex flex-row basis-1/3">
                     <CellChoice idx=0 show=choices[0] />
@@ -87,9 +89,9 @@ fn CellInside(row: usize, col: usize) -> impl IntoView {
 
 fn get_cell_classes(is_selected: bool) -> &'static str {
     if is_selected {
-        "border-gray-600 border border-1 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none font-serif"
+        "border-gray-600 border border-1 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none"
     } else {
-        "border-gray-600 border border-1 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none font-serif"
+        "border-gray-600 border border-1 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none"
     }
 }
 
@@ -159,8 +161,8 @@ fn SudokuRow(idx: usize) -> impl IntoView {
 fn SudokuGrid() -> impl IntoView {
     view! {
         <div
-            style="width: min(50vw, 50vh);height: min(50vw, 50vh);"
-            class="bg-white border-gray-800 border-4 shadow-lg flex flex-col m-auto"
+            style="width: min(50vw, 50vh);height: min(50vw, 50vh);font-family: 'Source Sans Pro'"
+            class="bg-white border-gray-800 border-4 shadow-lg flex flex-col m-auto lining-nums"
         >
             <SudokuRow idx=0 />
             <SudokuRow idx=1 />
@@ -216,9 +218,13 @@ fn SudokuDisplay() -> impl IntoView {
 }
 
 #[component]
-fn KeyboardShortcut(key: &'static str, action: &'static str, f: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
+fn KeyboardShortcut(
+    key: &'static str,
+    action: &'static str,
+    f: impl FnMut(MouseEvent) + 'static,
+) -> impl IntoView {
     view! {
-        <div 
+        <div
             class="p-2 space-x-2 flex outline outline-1 shadow-lg rounded-lg items-center bg-slate-400 hover:bg-blue-400 select-none"
             on:click=f
         >
@@ -248,7 +254,6 @@ fn KeyboardShortcuts() -> impl IntoView {
     }
 }
 
-
 #[component]
 fn SudokuGame() -> impl IntoView {
     let sudoku = create_rw_signal(SudokuData::default());
@@ -261,7 +266,7 @@ fn SudokuGame() -> impl IntoView {
     view! {
         <div class="p-1 h-screen max-h w-full bg-sky-100">
             <div class="m-20 p-20 space-y-10 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
-                <h1 class="text-6xl font-serif">"Sudoku"</h1>
+                <h1 style="font-family: 'Source Sans Pro';" class="text-6xl">"Sudoku"</h1>
                 <SudokuGrid />
                 <KeyboardShortcuts />
                 <SudokuDisplay />

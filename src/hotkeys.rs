@@ -58,7 +58,10 @@ fn setup_movement_hotkeys(game_state: RwSignal<GameState>) {
     setup_arrow_hotkey("ArrowDown", (1, 0), game_state);
 }
 
-pub fn apply_constraint(sudoku: &mut SudokuData, f: impl Fn(&mut Sudoku) -> Result<(), SudokuError>) {
+pub fn apply_constraint(
+    sudoku: &mut SudokuData,
+    f: impl Fn(&mut Sudoku) -> Result<(), SudokuError>,
+) {
     let _ = Sudoku::from_str(&sudoku.to_string())
         .and_then(|mut sudoku| {
             f(&mut sudoku)?;
