@@ -40,14 +40,15 @@ fn setup_solver_hotkeys(sudoku: RwSignal<SudokuData>) {
         sudoku.update(|sudoku| apply_constraint(sudoku, solver::check_constraints))
     });
     use_hotkeys!((format!("KeyG")) => move |_| {
-        sudoku.update(|sudoku| {
-            let _ = Sudoku::from_str(&sudoku.to_string())
-            .and_then(solver::solve)
-            .inspect(|solution| update_from_sudoku(sudoku, solution, false))
-            .map_err(|e| console_error(&format!("{:?}", e)));
-        // TODO: Show error message in the UI
-        });
+        sudoku.update(solve_sudoku);
     });
+}
+
+pub fn solve_sudoku(sudoku: &mut SudokuData) {
+    let _ = Sudoku::from_str(&sudoku.to_string())
+        .and_then(solver::solve)
+        .inspect(|solution| update_from_sudoku(sudoku, solution, false))
+        .map_err(|e| console_error(&format!("{:?}", e)));
 }
 
 fn setup_movement_hotkeys(game_state: RwSignal<GameState>) {
@@ -57,7 +58,7 @@ fn setup_movement_hotkeys(game_state: RwSignal<GameState>) {
     setup_arrow_hotkey("ArrowDown", (1, 0), game_state);
 }
 
-fn apply_constraint(sudoku: &mut SudokuData, f: impl Fn(&mut Sudoku) -> Result<(), SudokuError>) {
+pub fn apply_constraint(sudoku: &mut SudokuData, f: impl Fn(&mut Sudoku) -> Result<(), SudokuError>) {
     let _ = Sudoku::from_str(&sudoku.to_string())
         .and_then(|mut sudoku| {
             f(&mut sudoku)?;

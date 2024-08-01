@@ -1,9 +1,10 @@
 use std::str::FromStr;
 
-use hotkeys::{setup_hotkeys, update_from_sudoku};
+use ev::MouseEvent;
+use hotkeys::{apply_constraint, setup_hotkeys, solve_sudoku, update_from_sudoku};
 use leptos_dom::logging::{console_error, console_log};
 use leptos_hotkeys::{provide_hotkeys_context, scopes, HotkeysContext};
-use rust_sudoku_solver::Sudoku;
+use rust_sudoku_solver::{check_all_visible_doubles, place_all_hidden_singles, place_all_visible_singles, solver, Sudoku};
 use state::{decompress_string, Cell, GameState, SudokuData};
 
 use leptos::*;
@@ -86,9 +87,9 @@ fn CellInside(row: usize, col: usize) -> impl IntoView {
 
 fn get_cell_classes(is_selected: bool) -> &'static str {
     if is_selected {
-        "border-gray-800 border hover:border-2 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none font-serif"
+        "border-gray-600 border border-1 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none font-serif"
     } else {
-        "border-gray-800 border hover:border-2 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none font-serif"
+        "border-gray-600 border border-1 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none font-serif"
     }
 }
 
@@ -135,7 +136,7 @@ fn SudokuBoxRow(row: usize, idx: usize) -> impl IntoView {
 #[component]
 fn SudokuBox(idx: usize) -> impl IntoView {
     view! {
-        <div class="border-gray-800 border-2 flex flex-col basis-1/3">
+        <div class="border-gray-800 border-1 outline-gray-800 outline outline-2 flex flex-col basis-1/3">
             <SudokuBoxRow row=idx / 3 * 3 idx=idx % 3 />
             <SudokuBoxRow row=idx / 3 * 3 + 1 idx=idx % 3 />
             <SudokuBoxRow row=idx / 3 * 3 + 2 idx=idx % 3 />
@@ -207,12 +208,46 @@ fn SudokuDisplay() -> impl IntoView {
                     update_from_sudoku(sudoku_data, &sudoku(), true);
                 })
         }}
-        <div class="bg-slate-100 rounded-3xl p-4 shadow-lg">
+        <div class="bg-slate-100 rounded-3xl p-4 shadow-lg text-xs">
             <p class="font-mono">{move || sudoku_data().to_string()}</p>
             <p class="font-mono text-slate-400">{move || sudoku_data().to_compressed()}</p>
         </div>
     }
 }
+
+#[component]
+fn KeyboardShortcut(key: &'static str, action: &'static str, f: impl FnMut(MouseEvent) + 'static) -> impl IntoView {
+    view! {
+        <div 
+            class="p-2 space-x-2 flex outline outline-1 shadow-lg rounded-lg items-center bg-slate-400 hover:bg-blue-400 select-none"
+            on:click=f
+        >
+            <div class="flex h-6 w-6 justify-center rounded-lg outline outline-1 items-center bg-slate-500">
+                <p class="min-h-0 leading-none font-mono font-thin text-lg text-white">{key}</p>
+            </div>
+            <p class="min-h-0 leading-none text-sm font-mono text-white">{action}</p>
+        </div>
+    }
+}
+
+#[component]
+fn KeyboardShortcuts() -> impl IntoView {
+    let sudoku = use_context::<RwSignal<SudokuData>>().unwrap_or_else(|| {
+        console_error("SudokuData not available");
+        panic!("SudokuData not available");
+    });
+
+    view! {
+        <div class="flex space-x-2 p-2">
+            <KeyboardShortcut key="A" action="Singles" f=move |_| {sudoku.update(|sudoku| apply_constraint(sudoku, place_all_visible_singles))}/>
+            <KeyboardShortcut key="S" action="Hidden" f=move |_| {sudoku.update(|sudoku| apply_constraint(sudoku, place_all_hidden_singles))}/>
+            <KeyboardShortcut key="D" action="Doubles" f=move |_| {sudoku.update(|sudoku| apply_constraint(sudoku, check_all_visible_doubles))}/>
+            <KeyboardShortcut key="F" action="Constraints" f=move |_| {sudoku.update(|sudoku| apply_constraint(sudoku, solver::check_constraints))}/>
+            <KeyboardShortcut key="G" action="Solve" f=move |_| {sudoku.update(solve_sudoku)}/>
+        </div>
+    }
+}
+
 
 #[component]
 fn SudokuGame() -> impl IntoView {
@@ -228,6 +263,7 @@ fn SudokuGame() -> impl IntoView {
             <div class="m-20 p-20 space-y-10 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
                 <h1 class="text-6xl font-serif">"Sudoku"</h1>
                 <SudokuGrid />
+                <KeyboardShortcuts />
                 <SudokuDisplay />
             </div>
         </div>
