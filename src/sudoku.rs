@@ -41,8 +41,8 @@ pub fn SudokuGame() -> impl IntoView {
                     update_from_sudoku(sudoku_data, &sudoku(), true);
                 })
         }}
-        <div class="p-1 h-screen max-h w-full bg-sky-100">
-            <div class="m-20 p-20 pt-30 space-y-10 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
+        <div class="p-1 h-full min-h-screen w-full bg-sky-100">
+            <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
                 <SudokuGrid />
                 <KeyboardShortcuts />
                 <SudokuDisplay />
@@ -66,7 +66,7 @@ fn unwrap_params(params: &Result<SudokuParams, ParamsError>) -> Sudoku {
 fn SudokuGrid() -> impl IntoView {
     view! {
         <div
-            style="width: min(70vw, 70vh);height: min(70vw, 70vh);font-family: 'Source Sans Pro'"
+            style="width: min(60vw, 60vh);height: min(60vw, 60vh);font-family: 'Source Sans Pro'"
             class="bg-white border-gray-800 border-4 shadow-lg flex flex-col m-auto lining-nums"
         >
             <SudokuRow idx=0 />
@@ -138,7 +138,7 @@ fn SudokuCell(row: usize, col: usize) -> impl IntoView {
     });
     view! {
         <div
-            style="font-size: min(6vw, 6vh);"
+            style="font-size: min(5vw, 5vh);"
             class=move || {
                 let is_selected = is_active_cell(row, col);
                 get_cell_classes(is_selected)
