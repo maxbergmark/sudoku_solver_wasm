@@ -10,7 +10,10 @@ use ev::MouseEvent;
 use leptos_dom::logging::console_error;
 use rust_sudoku_solver::Sudoku;
 
-use leptos::*;
+use leptos::{
+    component, create_rw_signal, ev, leptos_dom, provide_context, update, use_context, view,
+    IntoView, Params, RwSignal, SignalUpdate, SignalWith,
+};
 use leptos_router::{use_query, Params, ParamsError};
 
 #[derive(Params, PartialEq, Debug)]
@@ -37,9 +40,9 @@ pub fn SudokuGame() -> impl IntoView {
     view! {
         {move || {
             sudoku_data
-                .update(|sudoku_data| {
-                    update_from_sudoku(sudoku_data, &sudoku(), true);
-                })
+                .update(|data| {
+                    update_from_sudoku(data, &sudoku(), true);
+                });
         }}
         <div class="p-1 h-full min-h-screen w-full bg-sky-100">
             <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
@@ -109,7 +112,7 @@ fn SudokuBoxRow(row: usize, idx: usize) -> impl IntoView {
     }
 }
 
-fn get_cell_classes(is_selected: bool) -> &'static str {
+const fn get_cell_classes(is_selected: bool) -> &'static str {
     if is_selected {
         "border-gray-600 border border-1 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none"
     } else {
@@ -118,24 +121,13 @@ fn get_cell_classes(is_selected: bool) -> &'static str {
 }
 
 fn is_active_cell(row: usize, col: usize) -> bool {
-    let game_state = use_context::<RwSignal<GameState>>().unwrap_or_else(|| {
-        console_error("GameState not available");
-        panic!("GameState not available");
-    });
-    game_state.with(|game_state| {
-        game_state
-            .active_cell
-            .map(|(r, c)| r == row && c == col)
-            .unwrap_or(false)
-    })
+    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
+    game_state.with(|state| state.active_cell.is_some_and(|(r, c)| r == row && c == col))
 }
 
 #[component]
 fn SudokuCell(row: usize, col: usize) -> impl IntoView {
-    let game_state = use_context::<RwSignal<GameState>>().unwrap_or_else(|| {
-        console_error("GameState not available");
-        panic!("GameState not available");
-    });
+    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
     view! {
         <div
             style="font-size: min(5vw, 5vh);"
@@ -145,8 +137,8 @@ fn SudokuCell(row: usize, col: usize) -> impl IntoView {
             }
             on:click=move |_| {
                 game_state
-                    .update(|game_state| {
-                        game_state.active_cell = Some((row, col));
+                    .update(|state| {
+                        state.active_cell = Some((row, col));
                     });
             }
         >
@@ -160,7 +152,7 @@ fn CellChoice(idx: usize, show: bool) -> impl IntoView {
     view! {
         <div class="w-1/3 basis-1/3 flex items-center justify-center">
             <p class="min-h-0 leading-none">
-                {if show { (idx + 1).to_string() } else { "".to_string() }}
+                {if show { (idx + 1).to_string() } else { String::new() }}
             </p>
         </div>
     }
@@ -198,13 +190,11 @@ fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div>
 
 #[component]
 fn CellInside(row: usize, col: usize) -> impl IntoView {
-    let sudoku = use_context::<RwSignal<SudokuData>>().unwrap_or_else(|| {
-        console_error("SudokuData not available");
-        panic!("SudokuData not available");
-    });
+    let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
+
     view! {
         {move || {
-            sudoku
+            sudoku_data
                 .with(|sudoku| match sudoku.get(row, col) {
                     Cell::Empty { choices } => render_choices(choices),
                     Cell::Value { value, .. } => {
@@ -228,10 +218,7 @@ fn CellInside(row: usize, col: usize) -> impl IntoView {
 
 #[component]
 fn SudokuDisplay() -> impl IntoView {
-    let sudoku_data = use_context::<RwSignal<SudokuData>>().unwrap_or_else(|| {
-        console_error("SudokuData not available");
-        panic!("SudokuData not available");
-    });
+    let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
 
     view! {
         <div class="bg-slate-100 rounded-3xl p-4 shadow-lg text-xs">
@@ -244,13 +231,10 @@ fn SudokuDisplay() -> impl IntoView {
 
 #[component]
 fn Message() -> impl IntoView {
-    let game_state = use_context::<RwSignal<GameState>>().unwrap_or_else(|| {
-        console_error("GameState not available");
-        panic!("GameState not available");
-    });
+    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
 
     // If no message is available, use a zero-width space to keep the layout stable
-    view! { <p class="font-mono">{move || game_state().message.unwrap_or("\u{200b}".into())}</p> }
+    view! { <p class="font-mono">{move || game_state().message.unwrap_or_else(|| "\u{200b}".into())}</p> }
 }
 
 #[component]
@@ -274,14 +258,8 @@ fn KeyboardShortcut(
 
 #[component]
 fn KeyboardShortcuts() -> impl IntoView {
-    let sudoku = use_context::<RwSignal<SudokuData>>().unwrap_or_else(|| {
-        console_error("SudokuData not available");
-        panic!("SudokuData not available");
-    });
-    let game_state = use_context::<RwSignal<GameState>>().unwrap_or_else(|| {
-        console_error("GameState not available");
-        panic!("GameState not available");
-    });
+    let sudoku = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
+    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
 
     view! {
         <div class="flex space-x-2 p-2">
@@ -291,7 +269,7 @@ fn KeyboardShortcuts() -> impl IntoView {
                 f=move |_| {
                     update!(
                         |game_state, sudoku| {
-                            game_state.show_result(place_all_visible_singles(sudoku))
+                            game_state.show_result(place_all_visible_singles(sudoku));
                         }
                     );
                 }
@@ -302,9 +280,9 @@ fn KeyboardShortcuts() -> impl IntoView {
                 f=move |_| {
                     update!(
                         |game_state, sudoku| {
-                            game_state.show_result(place_all_hidden_singles(sudoku))
+                            game_state.show_result(place_all_hidden_singles(sudoku));
                         }
-                    )
+                    );
                 }
             />
             <KeyboardShortcut
@@ -313,9 +291,9 @@ fn KeyboardShortcuts() -> impl IntoView {
                 f=move |_| {
                     update!(
                         |game_state, sudoku| {
-                            game_state.show_result(check_all_visible_doubles(sudoku))
+                            game_state.show_result(check_all_visible_doubles(sudoku));
                         }
-                    )
+                    );
                 }
             />
             <KeyboardShortcut
@@ -324,9 +302,9 @@ fn KeyboardShortcuts() -> impl IntoView {
                 f=move |_| {
                     update!(
                         |game_state, sudoku| {
-                            game_state.show_result(check_constraints(sudoku))
+                            game_state.show_result(check_constraints(sudoku));
                         }
-                    )
+                    );
                 }
             />
             <KeyboardShortcut
@@ -335,11 +313,19 @@ fn KeyboardShortcuts() -> impl IntoView {
                 f=move |_| {
                     update!(
                         |game_state, sudoku| {
-                            game_state.show_result(solve_sudoku(sudoku))
+                            game_state.show_result(solve_sudoku(sudoku));
                         }
                     );
                 }
             />
         </div>
     }
+}
+
+#[allow(clippy::panic)]
+fn unwrap_or_panic<T>(signal: Option<RwSignal<T>>) -> RwSignal<T> {
+    signal.unwrap_or_else(|| {
+        console_error("Component not available");
+        panic!("Component not available");
+    })
 }

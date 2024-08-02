@@ -55,31 +55,31 @@ pub fn solve_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
             update_from_sudoku(sudoku_data, &solution, false);
             elapsed
         })
-        .map(|elapsed| format!("Sudoku solved in {}", elapsed));
+        .map(|elapsed| format!("Sudoku solved in {elapsed}"));
     Ok(res?)
 }
 
 pub fn place_all_visible_singles(sudoku: &mut SudokuData) -> Result<String> {
     apply_constraint(sudoku, rust_sudoku_solver::place_all_visible_singles)
-        .map(|elapsed| format!("Visible singles placed in {}", elapsed))
+        .map(|elapsed| format!("Visible singles placed in {elapsed}"))
 }
 
 pub fn place_all_hidden_singles(sudoku: &mut SudokuData) -> Result<String> {
     apply_constraint(sudoku, rust_sudoku_solver::place_all_hidden_singles)
-        .map(|elapsed| format!("Hidden singles placed in {}", elapsed))
+        .map(|elapsed| format!("Hidden singles placed in {elapsed}"))
 }
 
 pub fn check_all_visible_doubles(sudoku: &mut SudokuData) -> Result<String> {
     apply_constraint(sudoku, rust_sudoku_solver::check_all_visible_doubles)
-        .map(|elapsed| format!("Doubles checked in {}", elapsed))
+        .map(|elapsed| format!("Doubles checked in {elapsed}"))
 }
 
 pub fn check_constraints(sudoku: &mut SudokuData) -> Result<String> {
     apply_constraint(sudoku, rust_sudoku_solver::check_constraints)
-        .map(|elapsed| format!("Constraints checked in {}", elapsed))
+        .map(|elapsed| format!("Constraints checked in {elapsed}"))
 }
 
-pub fn set_digit_if_selected(game_state: &mut GameState, sudoku: &mut SudokuData, digit: u8) {
+pub fn set_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData, digit: u8) {
     if let Some((row, col)) = game_state.active_cell {
         match sudoku.get(row, col) {
             Cell::Empty { choices } => {
@@ -101,7 +101,7 @@ pub fn set_digit_if_selected(game_state: &mut GameState, sudoku: &mut SudokuData
     }
 }
 
-pub fn clear_digit_if_selected(game_state: &mut GameState, sudoku: &mut SudokuData) {
+pub fn clear_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData) {
     if let Some((row, col)) = game_state.active_cell {
         sudoku.unset(row, col);
     }
@@ -135,22 +135,22 @@ fn is_valid_cell(row: i32, col: i32) -> bool {
 }
 
 pub fn handle_arrow(game_state: &RwSignal<GameState>, direction: (i32, i32)) {
-    game_state.update(|game_state| {
-        if let Some(prev) = game_state.last_key_press {
+    game_state.update(|state| {
+        if let Some(prev) = state.last_key_press {
             let now = Instant::now();
             if now.duration_since(prev).as_millis() < 10 {
                 return;
             }
-            game_state.last_key_press = Some(now);
+            state.last_key_press = Some(now);
         } else {
-            game_state.last_key_press = Some(Instant::now());
+            state.last_key_press = Some(Instant::now());
         }
 
-        if let Some((row, col)) = game_state.active_cell {
+        if let Some((row, col)) = state.active_cell {
             let new_row = row as i32 + direction.0;
             let new_col = col as i32 + direction.1;
             if is_valid_cell(new_row, new_col) {
-                game_state.active_cell = Some((new_row as usize, new_col as usize));
+                state.active_cell = Some((new_row as usize, new_col as usize));
             }
         }
     });

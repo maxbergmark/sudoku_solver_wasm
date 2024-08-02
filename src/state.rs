@@ -1,6 +1,6 @@
 use crate::Result;
-use std::fmt::Display;
 use rust_sudoku_solver::Sudoku;
+use std::fmt::Display;
 use web_time::Instant;
 
 #[derive(Debug, Default, Clone)]
@@ -8,12 +8,12 @@ pub struct SudokuData {
     pub rows: [SudokuRow; 9],
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct SudokuRow {
     pub cells: [Cell; 9],
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Cell {
     Empty { choices: [bool; 9] },
     Value { value: u8, choices: [bool; 9] },
@@ -22,7 +22,7 @@ pub enum Cell {
 
 impl Default for Cell {
     fn default() -> Self {
-        Cell::Empty { choices: [true; 9] }
+        Self::Empty { choices: [true; 9] }
     }
 }
 
@@ -44,7 +44,7 @@ impl GameState {
 
 impl From<&SudokuData> for Sudoku {
     fn from(data: &SudokuData) -> Self {
-        let mut sudoku = Sudoku::default();
+        let mut sudoku = Self::default();
         for (i, row) in data.rows.iter().enumerate() {
             for (j, cell) in row.cells.iter().enumerate() {
                 let idx = i * 9 + j;
@@ -98,7 +98,7 @@ impl SudokuData {
         }
     }
 
-    pub fn get(&self, row: usize, col: usize) -> &Cell {
+    pub const fn get(&self, row: usize, col: usize) -> &Cell {
         &self.rows[row].cells[col]
     }
 
@@ -153,22 +153,21 @@ impl SudokuData {
     }
 
     pub fn to_compressed(&self) -> String {
-        compress_string(&self.to_string())
+        compress_string(&self.to_string()).unwrap_or_default()
     }
 }
 
-pub fn compress_string(s: &str) -> String {
+pub fn compress_string(s: &str) -> Option<String> {
     let mut compressed = String::new();
     let mut count = 0;
-    let mut last_char = match s.chars().next() {
-        Some(c) => c,
-        None => return compressed,
+    let Some(mut last_char) = s.chars().next() else {
+        return Some(compressed);
     };
 
     for c in s.chars() {
         if c == last_char {
             if count == 52 {
-                compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)));
+                compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)?));
                 last_char = c;
                 count = 1;
             } else {
@@ -176,7 +175,7 @@ pub fn compress_string(s: &str) -> String {
             }
         } else {
             if count > 1 {
-                compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)));
+                compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)?));
             } else {
                 compressed.push(last_char);
             }
@@ -185,11 +184,11 @@ pub fn compress_string(s: &str) -> String {
         }
     }
     if count > 1 {
-        compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)));
+        compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)?));
     } else {
         compressed.push(last_char);
     }
-    compressed
+    Some(compressed)
 }
 
 pub fn decompress_string(s: &str) -> Option<String> {
@@ -205,7 +204,7 @@ pub fn decompress_string(s: &str) -> Option<String> {
     Some(decompressed)
 }
 
-fn get_count(c: char) -> Option<usize> {
+const fn get_count(c: char) -> Option<usize> {
     match c {
         'a'..='z' => Some(c as usize - 'a' as usize),
         'A'..='Z' => Some(c as usize - 'A' as usize + 26),
@@ -213,23 +212,23 @@ fn get_count(c: char) -> Option<usize> {
     }
 }
 
-fn get_letter(idx: usize) -> char {
+const fn get_letter(idx: usize) -> Option<char> {
     match idx {
         // start with lowercase, then uppercase
-        0..=25 => ('a' as usize + idx) as u8 as char,
-        26..=52 => ('A' as usize + idx - 26) as u8 as char,
-        _ => panic!("Invalid index: {}", idx),
+        0..=25 => Some(('a' as usize + idx) as u8 as char),
+        26..=52 => Some(('A' as usize + idx - 26) as u8 as char),
+        _ => None,
     }
 }
 
 impl Display for SudokuData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in self.rows.iter() {
-            for cell in row.cells.iter() {
+        for row in &self.rows {
+            for cell in &row.cells {
                 match cell {
                     Cell::Empty { .. } => write!(f, ".")?,
                     Cell::Value { value, .. } | Cell::FixedValue { value, .. } => {
-                        write!(f, "{value}")?
+                        write!(f, "{value}")?;
                     }
                 };
             }
@@ -245,22 +244,22 @@ mod tests {
     use super::*;
 
     #[rstest]
-    #[case("", "")]
-    #[case("1", "1")]
-    #[case("11", "1b")]
-    #[case("111111111", "1i")]
-    #[case("111111112", "1h2")]
-    #[case("111111122", "1g2b")]
-    #[case("111111222", "1f2c")]
-    #[case("111112222", "1e2d")]
-    #[case("111122222", "1d2e")]
-    #[case("111222222", "1c2f")]
-    #[case("112222222", "1b2g")]
-    #[case("122222222", "12h")]
-    #[case("222222222", "2i")]
-    #[case("1....2", "1.d2")]
-    fn test_compress_string(#[case] input: &str, #[case] expected: &str) {
-        assert_eq!(compress_string(input), expected);
+    #[case("", Some(""))]
+    #[case("1", Some("1"))]
+    #[case("11", Some("1b"))]
+    #[case("111111111", Some("1i"))]
+    #[case("111111112", Some("1h2"))]
+    #[case("111111122", Some("1g2b"))]
+    #[case("111111222", Some("1f2c"))]
+    #[case("111112222", Some("1e2d"))]
+    #[case("111122222", Some("1d2e"))]
+    #[case("111222222", Some("1c2f"))]
+    #[case("112222222", Some("1b2g"))]
+    #[case("122222222", Some("12h"))]
+    #[case("222222222", Some("2i"))]
+    #[case("1....2", Some("1.d2"))]
+    fn test_compress_string(#[case] input: &str, #[case] expected: Option<&str>) {
+        assert_eq!(compress_string(input), expected.map(|s| s.to_string()));
     }
 
     #[rstest]

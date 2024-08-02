@@ -13,7 +13,7 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            Error::Sudoku(_) => write!(f, "SudokuError"),
+            Self::Sudoku(_) => write!(f, "SudokuError"),
         }
     }
 }
