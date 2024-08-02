@@ -42,10 +42,7 @@ pub fn SudokuGame() -> impl IntoView {
                 })
         }}
         <div class="p-1 h-screen max-h w-full bg-sky-100">
-            <div class="m-20 p-20 space-y-10 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
-                <h1 style="font-family: 'Source Sans Pro';" class="text-6xl">
-                    "Sudoku"
-                </h1>
+            <div class="m-20 p-20 pt-30 space-y-10 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
                 <SudokuGrid />
                 <KeyboardShortcuts />
                 <SudokuDisplay />
@@ -69,7 +66,7 @@ fn unwrap_params(params: &Result<SudokuParams, ParamsError>) -> Sudoku {
 fn SudokuGrid() -> impl IntoView {
     view! {
         <div
-            style="width: min(50vw, 50vh);height: min(50vw, 50vh);font-family: 'Source Sans Pro'"
+            style="width: min(70vw, 70vh);height: min(70vw, 70vh);font-family: 'Source Sans Pro'"
             class="bg-white border-gray-800 border-4 shadow-lg flex flex-col m-auto lining-nums"
         >
             <SudokuRow idx=0 />
@@ -141,7 +138,7 @@ fn SudokuCell(row: usize, col: usize) -> impl IntoView {
     });
     view! {
         <div
-            style="font-size: min(4vw, 4vh);"
+            style="font-size: min(6vw, 6vh);"
             class=move || {
                 let is_selected = is_active_cell(row, col);
                 get_cell_classes(is_selected)
@@ -175,7 +172,7 @@ fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div>
     } else {
         view! {
             <div
-                style="font-size: min(1vw, 1vh);"
+                style="font-size: min(1.5vw, 1.5vh);"
                 class="flex flex-col w-full h-full text-slate-500"
             >
                 <div class="flex flex-row basis-1/3">
@@ -252,7 +249,8 @@ fn Message() -> impl IntoView {
         panic!("GameState not available");
     });
 
-    view! { <p class="font-mono">{move || game_state().message.unwrap_or_default()}</p> }
+    // If no message is available, use a zero-width space to keep the layout stable
+    view! { <p class="font-mono">{move || game_state().message.unwrap_or("\u{200b}".into())}</p> }
 }
 
 #[component]
