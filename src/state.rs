@@ -1,5 +1,6 @@
 use crate::Result;
 use std::fmt::Display;
+use rust_sudoku_solver::Sudoku;
 use web_time::Instant;
 
 #[derive(Debug, Default, Clone)]
@@ -38,6 +39,24 @@ impl GameState {
             Ok(v) => self.message = Some(v.to_string()),
             Err(e) => self.message = Some(e.to_string()),
         }
+    }
+}
+
+impl From<&SudokuData> for Sudoku {
+    fn from(data: &SudokuData) -> Self {
+        let mut sudoku = Sudoku::default();
+        for (i, row) in data.rows.iter().enumerate() {
+            for (j, cell) in row.cells.iter().enumerate() {
+                let idx = i * 9 + j;
+                match cell {
+                    Cell::Empty { .. } => {}
+                    Cell::Value { value, .. } | Cell::FixedValue { value } => {
+                        sudoku.place(idx, *value as usize);
+                    }
+                }
+            }
+        }
+        sudoku
     }
 }
 

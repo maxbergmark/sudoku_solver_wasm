@@ -1,5 +1,4 @@
 use derive_more::From;
-use std::str::FromStr;
 
 use leptos::{RwSignal, SignalUpdate};
 use rust_sudoku_solver::{solver, Sudoku, SudokuError};
@@ -49,14 +48,15 @@ impl<T, E> TimedAction<T, E> for std::result::Result<T, E> {
     }
 }
 
-pub fn solve_sudoku(sudoku: &mut SudokuData) -> Result<String> {
-    Ok(Sudoku::from_str(&sudoku.to_string())
+pub fn solve_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
+    let res = Ok(Sudoku::from(&*sudoku_data))
         .and_then_timed(solver::solve)
         .map(|(solution, elapsed)| {
-            update_from_sudoku(sudoku, &solution, false);
+            update_from_sudoku(sudoku_data, &solution, false);
             elapsed
         })
-        .map(|elapsed| format!("Sudoku solved in {}", elapsed))?)
+        .map(|elapsed| format!("Sudoku solved in {}", elapsed));
+    Ok(res?)
 }
 
 pub fn place_all_visible_singles(sudoku: &mut SudokuData) -> Result<String> {
@@ -157,17 +157,16 @@ pub fn handle_arrow(game_state: &RwSignal<GameState>, direction: (i32, i32)) {
 }
 
 fn apply_constraint(
-    sudoku: &mut SudokuData,
+    sudoku_data: &mut SudokuData,
     f: impl Fn(&mut Sudoku) -> std::result::Result<(), SudokuError>,
 ) -> Result<Duration> {
-    Ok(Sudoku::from_str(&sudoku.to_string())
+    Ok(Sudoku::from(&*sudoku_data))
         .and_then_timed(|mut sudoku| {
             f(&mut sudoku)?;
             Ok(sudoku)
         })
         .map(|(solution, elapsed)| {
-            update_from_sudoku(sudoku, &solution, false);
+            update_from_sudoku(sudoku_data, &solution, false);
             elapsed
-        })?)
-    // TODO: Show error message in the UI
+        })
 }
