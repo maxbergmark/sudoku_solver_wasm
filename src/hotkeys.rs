@@ -9,6 +9,7 @@ use crate::{
     state::{GameState, SudokuData},
 };
 
+#[allow(clippy::module_name_repetitions)]
 pub fn setup_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<SudokuData>) {
     setup_placement_hotkeys(game_state, sudoku);
     setup_solver_hotkeys(game_state, sudoku);

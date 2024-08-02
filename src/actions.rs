@@ -10,6 +10,7 @@ use crate::Result;
 #[derive(Debug, From)]
 pub struct Duration(pub web_time::Duration);
 
+#[allow(clippy::use_debug)]
 impl std::fmt::Display for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self.0)
@@ -81,22 +82,34 @@ pub fn check_constraints(sudoku: &mut SudokuData) -> Result<String> {
 
 pub fn set_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData, digit: u8) {
     if let Some((row, col)) = game_state.active_cell {
-        match sudoku.get(row, col) {
+        let cell = *sudoku.get(row, col);
+        match cell {
             Cell::Empty { choices } => {
                 if choices[(digit - 1) as usize] {
                     sudoku.set(row, col, digit, false);
                 }
             }
             Cell::Value { value, choices } => {
-                if value != &digit {
-                    let is_available = choices[(digit - 1) as usize];
-                    sudoku.unset(row, col);
-                    if is_available {
-                        sudoku.set(row, col, digit, false);
-                    }
-                }
+                set_if_available(value, digit, &choices, sudoku, row, col);
             }
             Cell::FixedValue { .. } => {}
+        }
+    }
+}
+
+fn set_if_available(
+    value: u8,
+    digit: u8,
+    choices: &[bool; 9],
+    sudoku: &mut SudokuData,
+    row: usize,
+    col: usize,
+) {
+    if value != digit {
+        let is_available = choices[(digit - 1) as usize];
+        sudoku.unset(row, col);
+        if is_available {
+            sudoku.set(row, col, digit, false);
         }
     }
 }

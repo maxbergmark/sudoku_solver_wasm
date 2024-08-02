@@ -27,6 +27,7 @@ impl Default for Cell {
 }
 
 #[derive(Debug, Default, Clone)]
+#[allow(clippy::module_name_repetitions)]
 pub struct GameState {
     pub active_cell: Option<(usize, usize)>,
     pub last_key_press: Option<Instant>,
@@ -166,29 +167,33 @@ pub fn compress_string(s: &str) -> Option<String> {
 
     for c in s.chars() {
         if c == last_char {
-            if count == 52 {
-                compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)?));
-                last_char = c;
-                count = 1;
-            } else {
-                count += 1;
-            }
+            count = push_if_full(&mut compressed, c, count)?;
         } else {
-            if count > 1 {
-                compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)?));
-            } else {
-                compressed.push(last_char);
-            }
+            push_repeated(&mut compressed, last_char, count)?;
             last_char = c;
             count = 1;
         }
     }
-    if count > 1 {
-        compressed.push_str(&format!("{}{}", last_char, get_letter(count - 1)?));
-    } else {
-        compressed.push(last_char);
-    }
+    push_repeated(&mut compressed, last_char, count)?;
     Some(compressed)
+}
+
+fn push_if_full(compressed: &mut String, c: char, count: usize) -> Option<usize> {
+    if count == 52 {
+        compressed.push_str(&format!("{}{}", c, get_letter(count - 1)?));
+        Some(1)
+    } else {
+        Some(count + 1)
+    }
+}
+
+fn push_repeated(compressed: &mut String, c: char, count: usize) -> Option<()> {
+    if count > 1 {
+        compressed.push_str(&format!("{}{}", c, get_letter(count - 1)?));
+    } else {
+        compressed.push(c);
+    }
+    Some(())
 }
 
 pub fn decompress_string(s: &str) -> Option<String> {
@@ -259,7 +264,7 @@ mod tests {
     #[case("222222222", Some("2i"))]
     #[case("1....2", Some("1.d2"))]
     fn test_compress_string(#[case] input: &str, #[case] expected: Option<&str>) {
-        assert_eq!(compress_string(input), expected.map(|s| s.to_string()));
+        assert_eq!(compress_string(input), expected.map(ToString::to_string));
     }
 
     #[rstest]
@@ -279,6 +284,6 @@ mod tests {
     #[case("1.d2", Some("1....2"))]
     #[case("d", None)]
     fn test_decompress_string(#[case] input: &str, #[case] expected: Option<&str>) {
-        assert_eq!(decompress_string(input), expected.map(|s| s.to_string()));
+        assert_eq!(decompress_string(input), expected.map(ToString::to_string));
     }
 }

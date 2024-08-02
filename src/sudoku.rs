@@ -21,10 +21,6 @@ struct SudokuParams {
     sudoku: Option<String>,
 }
 
-fn is_valid_game_str(game_str: &str) -> bool {
-    game_str.len() == 81 && game_str.chars().all(|c| c.is_ascii_digit() || c == '.')
-}
-
 #[component]
 pub fn SudokuGame() -> impl IntoView {
     let sudoku_data = create_rw_signal(SudokuData::default());
@@ -36,14 +32,10 @@ pub fn SudokuGame() -> impl IntoView {
 
     let params = use_query::<SudokuParams>();
     let sudoku = move || params.with(unwrap_params);
+    let update = move |data: &mut SudokuData| update_from_sudoku(data, &sudoku(), true);
 
     view! {
-        {move || {
-            sudoku_data
-                .update(|data| {
-                    update_from_sudoku(data, &sudoku(), true);
-                });
-        }}
+        {move || sudoku_data.update(update)}
         <div class="p-1 h-full min-h-screen w-full bg-sky-100">
             <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
                 <SudokuGrid />
@@ -63,6 +55,10 @@ fn unwrap_params(params: &Result<SudokuParams, ParamsError>) -> Sudoku {
         .filter(|s| is_valid_game_str(s))
         .and_then(|s| Sudoku::from_str(&s).ok())
         .unwrap_or_default()
+}
+
+fn is_valid_game_str(game_str: &str) -> bool {
+    game_str.len() == 81 && game_str.chars().all(|c| c.is_ascii_digit() || c == '.')
 }
 
 #[component]
@@ -112,37 +108,29 @@ fn SudokuBoxRow(row: usize, idx: usize) -> impl IntoView {
     }
 }
 
-const fn get_cell_classes(is_selected: bool) -> &'static str {
-    if is_selected {
-        "border-gray-600 border border-1 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none"
-    } else {
-        "border-gray-600 border border-1 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none"
-    }
-}
-
-fn is_active_cell(row: usize, col: usize) -> bool {
-    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
-    game_state.with(|state| state.active_cell.is_some_and(|(r, c)| r == row && c == col))
-}
-
 #[component]
 fn SudokuCell(row: usize, col: usize) -> impl IntoView {
     let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
+    let on_click = move |_| {
+        game_state.update(|state| {
+            state.active_cell = Some((row, col));
+        });
+    };
+    let class = move || get_cell_classes(is_active_cell(row, col));
     view! {
-        <div
-            style="font-size: min(5vw, 5vh);"
-            class=move || {
-                let is_selected = is_active_cell(row, col);
-                get_cell_classes(is_selected)
-            }
-            on:click=move |_| {
-                game_state
-                    .update(|state| {
-                        state.active_cell = Some((row, col));
-                    });
-            }
-        >
+        <div style="font-size: min(5vw, 5vh);" class=class on:click=on_click>
             <CellInside row=row col=col />
+        </div>
+    }
+}
+
+#[component]
+fn CellChoiceRow(idx: usize, choices: [bool; 9]) -> impl IntoView {
+    view! {
+        <div class="flex flex-row basis-1/3">
+            <CellChoice idx=3 * idx show=choices[3 * idx] />
+            <CellChoice idx=3 * idx + 1 show=choices[3 * idx + 1] />
+            <CellChoice idx=3 * idx + 2 show=choices[3 * idx + 2] />
         </div>
     }
 }
@@ -158,6 +146,19 @@ fn CellChoice(idx: usize, show: bool) -> impl IntoView {
     }
 }
 
+const fn get_cell_classes(is_selected: bool) -> &'static str {
+    if is_selected {
+        "border-gray-600 border border-1 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none"
+    } else {
+        "border-gray-600 border border-1 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none"
+    }
+}
+
+fn is_active_cell(row: usize, col: usize) -> bool {
+    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
+    game_state.with(|state| state.active_cell.is_some_and(|(r, c)| r == row && c == col))
+}
+
 fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div> {
     if choices.iter().all(|&b| b) {
         view! { <div class="flex flex-col w-full h-full" /> }
@@ -167,22 +168,9 @@ fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div>
                 style="font-size: min(1.5vw, 1.5vh);"
                 class="flex flex-col w-full h-full text-slate-500"
             >
-                <div class="flex flex-row basis-1/3">
-                    <CellChoice idx=0 show=choices[0] />
-                    <CellChoice idx=1 show=choices[1] />
-                    <CellChoice idx=2 show=choices[2] />
-                </div>
-                <div class="flex flex-row basis-1/3">
-                    <CellChoice idx=3 show=choices[3] />
-                    <CellChoice idx=4 show=choices[4] />
-                    <CellChoice idx=5 show=choices[5] />
-                </div>
-                <div class="flex flex-row basis-1/3">
-                    <CellChoice idx=6 show=choices[6] />
-                    <CellChoice idx=7 show=choices[7] />
-                    <CellChoice idx=8 show=choices[8] />
-                </div>
-
+                <CellChoiceRow idx=0 choices=*choices />
+                <CellChoiceRow idx=1 choices=*choices />
+                <CellChoiceRow idx=2 choices=*choices />
             </div>
         }
     }
@@ -191,28 +179,31 @@ fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div>
 #[component]
 fn CellInside(row: usize, col: usize) -> impl IntoView {
     let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
+    move || sudoku_data.with(|sudoku| render_cell(sudoku, row, col))
+}
 
+fn render_cell(
+    sudoku: &SudokuData,
+    row: usize,
+    col: usize,
+) -> leptos::HtmlElement<leptos::html::Div> {
+    match sudoku.get(row, col) {
+        Cell::Empty { choices } => render_choices(choices),
+        Cell::Value { value, .. } => render_value(*value, false),
+        Cell::FixedValue { value } => render_value(*value, true),
+    }
+}
+
+fn render_value(value: u8, is_fixed: bool) -> leptos::HtmlElement<leptos::html::Div> {
+    let class = if is_fixed {
+        "min-h-0 leading-none text-sky-700"
+    } else {
+        "min-h-0 leading-none"
+    };
     view! {
-        {move || {
-            sudoku_data
-                .with(|sudoku| match sudoku.get(row, col) {
-                    Cell::Empty { choices } => render_choices(choices),
-                    Cell::Value { value, .. } => {
-                        view! {
-                            <div>
-                                <p class="min-h-0 leading-none">{*value}</p>
-                            </div>
-                        }
-                    }
-                    Cell::FixedValue { value } => {
-                        view! {
-                            <div>
-                                <p class="min-h-0 leading-none text-sky-700">{*value}</p>
-                            </div>
-                        }
-                    }
-                })
-        }}
+        <div>
+            <p class=class>{value}</p>
+        </div>
     }
 }
 
@@ -232,22 +223,21 @@ fn SudokuDisplay() -> impl IntoView {
 #[component]
 fn Message() -> impl IntoView {
     let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
-
     // If no message is available, use a zero-width space to keep the layout stable
-    view! { <p class="font-mono">{move || game_state().message.unwrap_or_else(|| "\u{200b}".into())}</p> }
+    view! {
+        <p class="font-mono">{move || game_state().message.unwrap_or_else(|| "\u{200b}".into())}</p>
+    }
 }
 
 #[component]
 fn KeyboardShortcut(
     key: &'static str,
     action: &'static str,
-    f: impl FnMut(MouseEvent) + 'static,
+    on_click: impl FnMut(MouseEvent) + 'static,
 ) -> impl IntoView {
+    let class = "p-2 space-x-2 flex outline outline-1 shadow-lg rounded-lg items-center bg-slate-400 hover:bg-blue-400 select-none";
     view! {
-        <div
-            class="p-2 space-x-2 flex outline outline-1 shadow-lg rounded-lg items-center bg-slate-400 hover:bg-blue-400 select-none"
-            on:click=f
-        >
+        <div class=class on:click=on_click>
             <div class="flex h-6 w-6 justify-center rounded-lg outline outline-1 items-center bg-slate-500">
                 <p class="min-h-0 leading-none font-mono font-thin text-lg text-white">{key}</p>
             </div>
@@ -256,68 +246,50 @@ fn KeyboardShortcut(
     }
 }
 
+fn apply_solution(
+    game_state: RwSignal<GameState>,
+    sudoku: RwSignal<SudokuData>,
+    f: impl Fn(&mut SudokuData) -> crate::Result<String>,
+) -> impl Fn(MouseEvent) {
+    move |_| {
+        update!(|game_state, sudoku| {
+            game_state.show_result(f(sudoku));
+        });
+    }
+}
+
 #[component]
 fn KeyboardShortcuts() -> impl IntoView {
     let sudoku = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
     let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
+
+    let with_signals = move |f: fn(&mut SudokuData) -> crate::Result<String>| {
+        apply_solution(game_state, sudoku, f)
+    };
 
     view! {
         <div class="flex space-x-2 p-2">
             <KeyboardShortcut
                 key="A"
                 action="Singles"
-                f=move |_| {
-                    update!(
-                        |game_state, sudoku| {
-                            game_state.show_result(place_all_visible_singles(sudoku));
-                        }
-                    );
-                }
+                on_click=with_signals(place_all_visible_singles)
             />
             <KeyboardShortcut
                 key="S"
                 action="Hidden"
-                f=move |_| {
-                    update!(
-                        |game_state, sudoku| {
-                            game_state.show_result(place_all_hidden_singles(sudoku));
-                        }
-                    );
-                }
+                on_click=with_signals(place_all_hidden_singles)
             />
             <KeyboardShortcut
                 key="D"
                 action="Doubles"
-                f=move |_| {
-                    update!(
-                        |game_state, sudoku| {
-                            game_state.show_result(check_all_visible_doubles(sudoku));
-                        }
-                    );
-                }
+                on_click=with_signals(check_all_visible_doubles)
             />
             <KeyboardShortcut
                 key="F"
                 action="Constraints"
-                f=move |_| {
-                    update!(
-                        |game_state, sudoku| {
-                            game_state.show_result(check_constraints(sudoku));
-                        }
-                    );
-                }
+                on_click=with_signals(check_constraints)
             />
-            <KeyboardShortcut
-                key="G"
-                action="Solve"
-                f=move |_| {
-                    update!(
-                        |game_state, sudoku| {
-                            game_state.show_result(solve_sudoku(sudoku));
-                        }
-                    );
-                }
-            />
+            <KeyboardShortcut key="G" action="Solve" on_click=with_signals(solve_sudoku) />
         </div>
     }
 }
