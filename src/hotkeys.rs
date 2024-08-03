@@ -3,8 +3,9 @@ use leptos_hotkeys::{use_hotkeys, use_hotkeys_scoped};
 
 use crate::{
     actions::{
-        check_all_visible_doubles, check_constraints, clear_digit_if_selected, handle_arrow,
-        place_all_hidden_singles, place_all_visible_singles, set_digit_if_selected, solve_sudoku,
+        check_all_visible_doubles, check_constraints, check_triples, clear_digit_if_selected,
+        handle_arrow, place_all_hidden_singles, place_all_visible_singles, set_digit_if_selected,
+        solve_sudoku,
     },
     state::{GameState, SudokuData},
 };
@@ -20,7 +21,7 @@ fn setup_placement_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<Sud
     for i in 1..=9 {
         setup_digit_hotkey(i, game_state, sudoku);
     }
-    use_hotkeys!((format!("escape,backspace")) => move |()| {
+    use_hotkeys!((format!("Escape,Backspace")) => move |()| {
         update!(|game_state, sudoku| {
             clear_digit_if_selected(game_state, sudoku);
         });
@@ -28,31 +29,20 @@ fn setup_placement_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<Sud
 }
 
 fn setup_solver_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<SudokuData>) {
-    use_hotkeys!(("KeyA") => move |()| {
-        update!(|game_state, sudoku| {
-            game_state.show_result(place_all_visible_singles(sudoku));
-        });
-    });
-    use_hotkeys!(("KeyS") => move |()| {
-        update!(|game_state, sudoku| {
-            game_state.show_result(place_all_hidden_singles(sudoku));
-        });
-    });
-    use_hotkeys!(("KeyD") => move |()| {
-        update!(|game_state, sudoku| {
-            game_state.show_result(check_all_visible_doubles(sudoku));
-        });
-    });
-    use_hotkeys!(("KeyF") => move |()| {
-        update!(|game_state, sudoku| {
-            game_state.show_result(check_constraints(sudoku));
-        });
-    });
-    use_hotkeys!(("KeyG") => move |()| {
-        update!(|game_state, sudoku| {
-            game_state.show_result(solve_sudoku(sudoku));
-        });
-    });
+    let apply_and_show = move |f: fn(&mut SudokuData) -> crate::Result<String>| {
+        move |()| {
+            update!(|game_state, sudoku| {
+                game_state.show_result(f(sudoku));
+            });
+        }
+    };
+
+    use_hotkeys!(("KeyA") => apply_and_show(place_all_visible_singles));
+    use_hotkeys!(("KeyS") => apply_and_show(place_all_hidden_singles));
+    use_hotkeys!(("KeyD") => apply_and_show(check_all_visible_doubles));
+    use_hotkeys!(("KeyF") => apply_and_show(check_triples));
+    use_hotkeys!(("KeyG") => apply_and_show(check_constraints));
+    use_hotkeys!(("KeyH") => apply_and_show(solve_sudoku));
 }
 
 fn setup_movement_hotkeys(game_state: RwSignal<GameState>) {

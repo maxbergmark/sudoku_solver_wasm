@@ -1,7 +1,7 @@
 use derive_more::From;
 
 use leptos::{RwSignal, SignalUpdate};
-use rust_sudoku_solver::{solver, Sudoku, SudokuError};
+use rust_sudoku_solver::{solver, Sudoku};
 use web_time::Instant;
 
 use crate::state::{Cell, GameState, SudokuData};
@@ -73,6 +73,11 @@ pub fn place_all_hidden_singles(sudoku: &mut SudokuData) -> Result<String> {
 pub fn check_all_visible_doubles(sudoku: &mut SudokuData) -> Result<String> {
     apply_constraint(sudoku, rust_sudoku_solver::check_all_visible_doubles)
         .map(|elapsed| format!("Doubles checked in {elapsed}"))
+}
+
+pub fn check_triples(sudoku: &mut SudokuData) -> Result<String> {
+    apply_constraint(sudoku, rust_sudoku_solver::check_triples)
+        .map(|elapsed| format!("Triples checked in {elapsed}"))
 }
 
 pub fn check_constraints(sudoku: &mut SudokuData) -> Result<String> {
@@ -171,7 +176,7 @@ pub fn handle_arrow(game_state: &RwSignal<GameState>, direction: (i32, i32)) {
 
 fn apply_constraint(
     sudoku_data: &mut SudokuData,
-    f: impl Fn(&mut Sudoku) -> std::result::Result<(), SudokuError>,
+    f: impl Fn(&mut Sudoku) -> rust_sudoku_solver::Result<()>,
 ) -> Result<Duration> {
     Ok(Sudoku::from(&*sudoku_data))
         .and_then_timed(|mut sudoku| {

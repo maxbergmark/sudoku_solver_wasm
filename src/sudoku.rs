@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::actions::{
-    check_all_visible_doubles, check_constraints, place_all_hidden_singles,
+    check_all_visible_doubles, check_constraints, check_triples, place_all_hidden_singles,
     place_all_visible_singles, solve_sudoku, update_from_sudoku,
 };
 use crate::hotkeys::setup_hotkeys;
@@ -284,8 +284,9 @@ fn KeyboardShortcuts() -> impl IntoView {
                 action="Doubles"
                 on_click=with_signals(check_all_visible_doubles)
             />
+            <KeyboardShortcut key="F" action="Triples" on_click=with_signals(check_triples) />
             <KeyboardShortcut
-                key="F"
+                key="G"
                 action="Constraints"
                 on_click=with_signals(check_constraints)
             />
