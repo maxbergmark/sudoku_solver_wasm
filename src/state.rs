@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{actions::update_from_sudoku, Result};
 use rust_sudoku_solver::Sudoku;
 use std::fmt::Display;
 use web_time::Instant;
@@ -86,15 +86,10 @@ impl SudokuData {
     pub fn unset(&mut self, row: usize, col: usize) {
         match self.rows[row].cells[col] {
             Cell::Empty { .. } | Cell::FixedValue { .. } => {}
-            Cell::Value { value, choices } => {
+            Cell::Value { choices, .. } => {
                 self.rows[row].cells[col] = Cell::Empty { choices };
-                for i in 0..9 {
-                    self.add_choice(row, i, value);
-                    self.add_choice(i, col, value);
-                }
-                for (r, c) in Self::get_box_positions(row, col) {
-                    self.add_choice(r, c, value);
-                }
+                let sudoku = Sudoku::from(&*self);
+                update_from_sudoku(self, &sudoku, false);
             }
         }
     }
@@ -136,14 +131,12 @@ impl SudokuData {
         match &mut self.rows[row].cells[col] {
             Cell::Empty { choices } => {
                 choices[(value - 1) as usize] = false;
-                // if let Some(v) = Self::get_only_choice(choices) {
-                // self.set(row, col, v, false);
-                // }
             }
             Cell::Value { .. } | Cell::FixedValue { .. } => {}
         }
     }
 
+    #[allow(unused)]
     fn add_choice(&mut self, row: usize, col: usize, value: u8) {
         match &mut self.rows[row].cells[col] {
             Cell::Empty { choices } => {
