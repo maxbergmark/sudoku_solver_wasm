@@ -290,7 +290,7 @@ fn KeyboardShortcuts() -> impl IntoView {
                 action="Constraints"
                 on_click=with_signals(check_constraints)
             />
-            <KeyboardShortcut key="G" action="Solve" on_click=with_signals(solve_sudoku) />
+            <KeyboardShortcut key="H" action="Solve" on_click=with_signals(solve_sudoku) />
         </div>
     }
 }
