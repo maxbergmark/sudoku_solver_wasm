@@ -49,15 +49,27 @@ impl<T, E> TimedAction<T, E> for std::result::Result<T, E> {
     }
 }
 
+pub fn verify_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
+    Ok(sudoku_data)
+        .and_then_timed(compare_with_solution)
+        .map(|((), elapsed)| format!("Sudoku verified in {elapsed}"))
+}
+
 pub fn solve_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
-    let res = Ok(Sudoku::from(&*sudoku_data))
+    Ok(Sudoku::from(&*sudoku_data))
         .and_then_timed(solver::solve)
         .map(|(solution, elapsed)| {
             update_from_sudoku(sudoku_data, &solution, false);
             elapsed
         })
-        .map(|elapsed| format!("Sudoku solved in {elapsed}"));
-    Ok(res?)
+        .map_err(|err| {
+            let r = compare_with_solution(sudoku_data);
+            match r {
+                Ok(()) => err.into(),
+                Err(e) => e,
+            }
+        })
+        .map(|elapsed| format!("Sudoku solved in {elapsed}"))
 }
 
 pub fn place_all_visible_singles(sudoku: &mut SudokuData) -> Result<String> {
@@ -85,7 +97,7 @@ pub fn check_constraints(sudoku: &mut SudokuData) -> Result<String> {
         .map(|elapsed| format!("Constraints checked in {elapsed}"))
 }
 
-pub fn set_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData, digit: u8) {
+pub fn toggle_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData, digit: u8) {
     if let Some((row, col)) = game_state.active_cell {
         let cell = *sudoku.get(row, col);
         match cell {
@@ -94,15 +106,27 @@ pub fn set_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData, di
                     sudoku.set(row, col, digit, false);
                 }
             }
-            Cell::Value { value, choices } => {
-                set_if_available(value, digit, &choices, sudoku, row, col);
+            Cell::Value { value, choices } | Cell::Error { value, choices } => {
+                toggle_if_available(value, digit, &choices, sudoku, row, col);
             }
             Cell::FixedValue { .. } => {}
         }
     }
 }
 
-fn set_if_available(
+// TODO: make this work by clicking the choice instead
+pub fn toggle_choice_if_selected(game_state: &GameState, sudoku: &mut SudokuData, digit: u8) {
+    if let Some((row, col)) = game_state.active_cell {
+        match sudoku.get_mut(row, col) {
+            Cell::Empty { choices } => {
+                choices[(digit - 1) as usize] = !choices[(digit - 1) as usize];
+            }
+            Cell::Value { .. } | Cell::Error { .. } | Cell::FixedValue { .. } => {}
+        }
+    }
+}
+
+fn toggle_if_available(
     value: u8,
     digit: u8,
     choices: &[bool; 9],
@@ -110,7 +134,9 @@ fn set_if_available(
     row: usize,
     col: usize,
 ) {
-    if value != digit {
+    if value == digit {
+        sudoku.unset(row, col);
+    } else {
         let is_available = choices[(digit - 1) as usize];
         sudoku.unset(row, col);
         if is_available {
@@ -125,7 +151,7 @@ pub fn clear_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData) 
     }
 }
 
-fn to_choices(bitboard: usize) -> [bool; 9] {
+pub fn to_choices(bitboard: usize) -> [bool; 9] {
     let mut choices = [false; 9];
     for i in 1..=9 {
         choices[i - 1] = (bitboard & (1 << i)) != 0;
@@ -148,22 +174,32 @@ pub fn update_from_sudoku(sudoku: &mut SudokuData, solution: &Sudoku, fixed: boo
     }
 }
 
+pub fn compare_with_solution(sudoku: &mut SudokuData) -> Result<()> {
+    let solution = solver::solve(sudoku.fixed_sudoku())?;
+
+    for i in 0..9 {
+        for j in 0..9 {
+            let idx = 9 * i + j;
+            let cell = sudoku.rows[i].cells[j];
+            if let Cell::Value { value, .. } = cell {
+                if value != solution.digits[idx] as u8 {
+                    sudoku.rows[i].cells[j] = Cell::Error {
+                        value,
+                        choices: to_choices(solution.bitboard[idx]),
+                    };
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn is_valid_cell(row: i32, col: i32) -> bool {
     (0..9).contains(&row) && (0..9).contains(&col)
 }
 
 pub fn handle_arrow(game_state: &RwSignal<GameState>, direction: (i32, i32)) {
     game_state.update(|state| {
-        if let Some(prev) = state.last_key_press {
-            let now = Instant::now();
-            if now.duration_since(prev).as_millis() < 10 {
-                return;
-            }
-            state.last_key_press = Some(now);
-        } else {
-            state.last_key_press = Some(Instant::now());
-        }
-
         if let Some((row, col)) = state.active_cell {
             let new_row = row as i32 + direction.0;
             let new_col = col as i32 + direction.1;

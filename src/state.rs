@@ -1,7 +1,9 @@
-use crate::{actions::update_from_sudoku, Result};
+use crate::{
+    actions::{to_choices, update_from_sudoku},
+    Result,
+};
 use rust_sudoku_solver::Sudoku;
 use std::fmt::Display;
-use web_time::Instant;
 
 #[derive(Debug, Default, Clone)]
 pub struct SudokuData {
@@ -18,6 +20,7 @@ pub enum Cell {
     Empty { choices: [bool; 9] },
     Value { value: u8, choices: [bool; 9] },
     FixedValue { value: u8 },
+    Error { value: u8, choices: [bool; 9] },
 }
 
 impl Default for Cell {
@@ -26,11 +29,16 @@ impl Default for Cell {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DigitMode {
+    Value,
+    Choice,
+}
+
 #[derive(Debug, Default, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct GameState {
     pub active_cell: Option<(usize, usize)>,
-    pub last_key_press: Option<Instant>,
     pub message: Option<String>,
 }
 
@@ -51,13 +59,36 @@ impl From<&SudokuData> for Sudoku {
                 let idx = i * 9 + j;
                 match cell {
                     Cell::Empty { .. } => {}
-                    Cell::Value { value, .. } | Cell::FixedValue { value } => {
+                    Cell::Value { value, .. }
+                    | Cell::FixedValue { value }
+                    | Cell::Error { value, .. } => {
                         sudoku.place(idx, *value as usize);
                     }
                 }
             }
         }
         sudoku
+    }
+}
+
+impl From<&Sudoku> for SudokuData {
+    fn from(sudoku: &Sudoku) -> Self {
+        let mut data = Self::default();
+        for i in 0..9 {
+            for j in 0..9 {
+                let idx = 9 * i + j;
+                if sudoku.digits[idx] == 0 {
+                    data.rows[i].cells[j] = Cell::Empty {
+                        choices: to_choices(sudoku.bitboard[idx]),
+                    };
+                } else {
+                    data.rows[i].cells[j] = Cell::FixedValue {
+                        value: sudoku.digits[idx] as u8,
+                    };
+                }
+            }
+        }
+        data
     }
 }
 
@@ -79,14 +110,14 @@ impl SudokuData {
                     self.remove_choice(r, c, value);
                 }
             }
-            Cell::Value { .. } | Cell::FixedValue { .. } => {}
+            Cell::Value { .. } | Cell::FixedValue { .. } | Cell::Error { .. } => {}
         }
     }
 
     pub fn unset(&mut self, row: usize, col: usize) {
         match self.rows[row].cells[col] {
             Cell::Empty { .. } | Cell::FixedValue { .. } => {}
-            Cell::Value { choices, .. } => {
+            Cell::Value { choices, .. } | Cell::Error { choices, .. } => {
                 self.rows[row].cells[col] = Cell::Empty { choices };
                 let sudoku = Sudoku::from(&*self);
                 update_from_sudoku(self, &sudoku, false);
@@ -96,6 +127,26 @@ impl SudokuData {
 
     pub const fn get(&self, row: usize, col: usize) -> &Cell {
         &self.rows[row].cells[col]
+    }
+
+    pub fn get_mut(&mut self, row: usize, col: usize) -> &mut Cell {
+        &mut self.rows[row].cells[col]
+    }
+
+    pub fn fixed_sudoku(&self) -> Sudoku {
+        let mut sudoku = Sudoku::default();
+        for (i, row) in self.rows.iter().enumerate() {
+            for (j, cell) in row.cells.iter().enumerate() {
+                let idx = i * 9 + j;
+                match cell {
+                    Cell::Empty { .. } | Cell::Value { .. } | Cell::Error { .. } => {}
+                    Cell::FixedValue { value } => {
+                        sudoku.place(idx, *value as usize);
+                    }
+                }
+            }
+        }
+        sudoku
     }
 
     fn get_box_positions(row: usize, col: usize) -> Vec<(usize, usize)> {
@@ -132,7 +183,7 @@ impl SudokuData {
             Cell::Empty { choices } => {
                 choices[(value - 1) as usize] = false;
             }
-            Cell::Value { .. } | Cell::FixedValue { .. } => {}
+            Cell::Value { .. } | Cell::FixedValue { .. } | Cell::Error { .. } => {}
         }
     }
 
@@ -142,7 +193,7 @@ impl SudokuData {
             Cell::Empty { choices } => {
                 choices[(value - 1) as usize] = true;
             }
-            Cell::Value { .. } | Cell::FixedValue { .. } => {}
+            Cell::Value { .. } | Cell::FixedValue { .. } | Cell::Error { .. } => {}
         }
     }
 
@@ -225,7 +276,9 @@ impl Display for SudokuData {
             for cell in &row.cells {
                 match cell {
                     Cell::Empty { .. } => write!(f, ".")?,
-                    Cell::Value { value, .. } | Cell::FixedValue { value, .. } => {
+                    Cell::Value { value, .. }
+                    | Cell::FixedValue { value, .. }
+                    | Cell::Error { value, .. } => {
                         write!(f, "{value}")?;
                     }
                 };

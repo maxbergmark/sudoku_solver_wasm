@@ -7,7 +7,11 @@ edition = "2021"
 console_error_panic_hook = "0.1.7"
 derive_more = "0.99.18"
 leptos = { version = "0.6.13", features = ["csr", "nightly"] }
-leptos_hotkeys = "0.2.2"
+# leptos_hotkeys = { version = "0.2.2", features = ["debug"] }
+leptos_hotkeys = { git = "https://github.com/maxbergmark/leptos-hotkeys.git", branch = "bugfix/prevent-multiple-key-events", features = [
+    "debug",
+] }
+
 leptos_meta = { version = "0.6.13", features = ["csr", "nightly"] }
 leptos_router = { version = "0.6.13", features = ["csr", "nightly"] }
 rstest = "0.21.0"
