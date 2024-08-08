@@ -41,6 +41,8 @@ mod error;
 mod hotkeys;
 mod state;
 mod sudoku;
+mod ui;
+mod util;
 
 pub use error::Error;
 pub use error::Result;
