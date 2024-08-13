@@ -1,16 +1,12 @@
 use std::str::FromStr;
 
 use crate::actions::update_from_sudoku;
-use crate::hotkeys::setup_hotkeys;
 use crate::state::{decompress_string, Cell, GameState, SudokuData};
-use crate::ui::{DigitDisplay, KeyboardShortcuts, SudokuDisplay};
+use crate::ui::{DarkModeToggle, DigitDisplay, KeyboardShortcuts, SudokuDisplay};
 use crate::util::unwrap_or_panic;
 use rust_sudoku_solver::Sudoku;
 
-use leptos::{
-    component, create_rw_signal, provide_context, use_context, view, IntoView, Params, RwSignal,
-    SignalUpdate, SignalWith,
-};
+use leptos::{component, use_context, view, IntoView, Params, RwSignal, SignalUpdate, SignalWith};
 use leptos_router::{use_query, Params, ParamsError};
 
 #[derive(Params, PartialEq, Debug)]
@@ -20,20 +16,17 @@ struct SudokuParams {
 
 #[component]
 pub fn SudokuGame() -> impl IntoView {
-    let sudoku_data = create_rw_signal(SudokuData::default());
-    let game_state = create_rw_signal(GameState::default());
-
-    provide_context(game_state);
-    provide_context(sudoku_data);
-    setup_hotkeys(game_state, sudoku_data);
-
+    let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
     let params = use_query::<SudokuParams>();
     let sudoku = move || params.with(unwrap_params);
     let update = move |data: &mut SudokuData| update_from_sudoku(data, &sudoku(), true);
     view! {
         {move || sudoku_data.update(update)}
-        <div class="p-1 h-full min-h-screen w-full bg-sky-100">
-            <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
+        <div class="p-1 h-full min-h-screen w-full bg-sky-100 dark:bg-black">
+            <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 dark:bg-zinc-950 dark:outline dark:outline-1 dark:outline-zinc-900 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
+                <div class="absolute top-0 right-0 p-4 m-10">
+                    <DarkModeToggle />
+                </div>
                 <SudokuGrid />
                 <div class="flex space-x-10">
                     <DigitDisplay />
@@ -65,7 +58,7 @@ fn SudokuGrid() -> impl IntoView {
     view! {
         <div
             style="width: min(60vw, 60vh);height: min(60vw, 60vh);font-family: 'Source Sans Pro', serif"
-            class="bg-white border-gray-800 border-4 shadow-lg flex flex-col m-auto lining-nums"
+            class="bg-white border-gray-800 dark:bg-black border-4 shadow-lg flex flex-col m-auto lining-nums"
         >
             <SudokuRow idx=0 />
             <SudokuRow idx=1 />
@@ -147,9 +140,9 @@ fn CellChoice(idx: usize, show: bool) -> impl IntoView {
 
 const fn get_cell_classes(is_selected: bool) -> &'static str {
     if is_selected {
-        "border-gray-600 border border-1 hover:bg-blue-300 bg-gray-300 flex justify-center items-center basis-1/3 select-none"
+        "border-gray-600 border border-1 hover:bg-cerulean-blue-300 dark:hover:bg-zinc-800 bg-gray-300 dark:bg-zinc-900 flex justify-center items-center basis-1/3 select-none"
     } else {
-        "border-gray-600 border border-1 hover:bg-blue-100 flex justify-center items-center basis-1/3 select-none"
+        "border-gray-600 border border-1 hover:bg-cerulean-blue-100 dark:hover:bg-zinc-900 flex justify-center items-center basis-1/3 select-none"
     }
 }
 
@@ -202,8 +195,8 @@ enum ValueType {
 
 fn render_value(value: &ValueType) -> leptos::HtmlElement<leptos::html::Div> {
     let class = match value {
-        ValueType::Value(_) => "min-h-0 leading-none",
-        ValueType::FixedValue(_) => "min-h-0 leading-none text-sky-700",
+        ValueType::Value(_) => "min-h-0 leading-none dark:text-gray-600",
+        ValueType::FixedValue(_) => "min-h-0 leading-none text-cerulean-blue-700",
         ValueType::Error(_) => "min-h-0 leading-none text-red-700",
     };
     let v = match value {

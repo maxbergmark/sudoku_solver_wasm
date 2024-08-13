@@ -28,7 +28,12 @@
     while_true,
 )]
 
+use hotkeys::setup_hotkeys;
+use leptos::create_rw_signal;
+use leptos::provide_context;
 use leptos_hotkeys::{provide_hotkeys_context, scopes, HotkeysContext};
+use state::GameState;
+use state::SudokuData;
 use sudoku::SudokuGame;
 
 use leptos::{component, create_node_ref, html, mount_to_body, view, IntoView};
@@ -53,21 +58,30 @@ fn App() -> impl IntoView {
 
     let main_ref = create_node_ref::<html::Main>();
     let HotkeysContext { .. } = provide_hotkeys_context(main_ref, false, scopes!());
+    // let darkmode = Darkmode::init();
+    let sudoku_data = create_rw_signal(SudokuData::default());
+    let game_state = create_rw_signal(GameState::default());
+
+    provide_context(game_state);
+    provide_context(sudoku_data);
+    setup_hotkeys(game_state, sudoku_data);
 
     view! {
-        <Router>
-            <main _ref=main_ref>
-                <Routes>
-                    <Route path="/" view=SudokuGame />
-                    <Route
-                        path="/sudoku_solver_wasm/"
-                        trailing_slash=TrailingSlash::Exact
-                        view=SudokuGame
-                    />
-                    <Route path="/*any" view=move || view! { <p>"Page not found"</p> } />
-                </Routes>
-            </main>
-        </Router>
+        <div class=move || game_state().dark_mode.class()>
+            <Router>
+                <main _ref=main_ref>
+                    <Routes>
+                        <Route path="/" view=SudokuGame />
+                        <Route
+                            path="/sudoku_solver_wasm/"
+                            trailing_slash=TrailingSlash::Exact
+                            view=SudokuGame
+                        />
+                        <Route path="/*any" view=move || view! { <p>"Page not found"</p> } />
+                    </Routes>
+                </main>
+            </Router>
+        </div>
     }
 }
 

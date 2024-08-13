@@ -13,7 +13,7 @@ use crate::{
 #[component]
 pub fn DigitDisplay() -> impl IntoView {
     view! {
-        <div class="p-2 flex flex-col rounded-2xl bg-slate-100 shadow-2xl justify-between">
+        <div class="p-2 flex flex-col rounded-2xl bg-slate-100 dark:bg-zinc-900 dark:outline dark:outline-1 dark:outline-zinc-800 shadow-2xl justify-between">
             <DigitModeDisplay />
             <div class="flex flex-col space-y-2">
                 <DigitButtonRow start_digit=1 />
@@ -50,11 +50,11 @@ fn DigitButton(digit: u8) -> impl IntoView {
     };
     view! {
         <div
-            class="w-20 h-20 flex outline outline-1 rounded-lg items-center justify-center bg-slate-400 hover:bg-blue-400 select-none"
+            class="w-20 h-20 flex rounded-lg items-center justify-center bg-slate-400 dark:bg-cerulean-blue-700 hover:bg-blue-400 dark:hover:bg-cerulean-blue-600 select-none shadow-sm"
             on:click=on_click
         >
             <p
-                class="leading-none text-white text-4xl"
+                class="leading-none text-white text-5xl"
                 style="font-family: 'Source Sans Pro', serif"
             >
                 {digit}
@@ -68,7 +68,7 @@ fn DigitModeDisplay() -> impl IntoView {
     let current_scope = unwrap_or_panic(use_context::<RwSignal<DigitMode>>());
     view! {
         <div
-            class="w-full h-14 p-2 pl-2 flex bg-slate-400 outline outline-1 rounded-lg leading-none items-center space-x-2 select-none"
+            class="w-full h-14 p-2 pl-2 flex bg-slate-400 dark:bg-cerulean-blue-700 rounded-lg leading-none items-center space-x-2 select-none"
             on:click=move |_| {
                 update!(
                     |current_scope| {
@@ -83,30 +83,30 @@ fn DigitModeDisplay() -> impl IntoView {
             <div class="basis-8">
                 <KeyButton key="↹" />
             </div>
-            <div class="max-w-full h-full flex relative basis-full">
+            <div class="max-w-full h-full flex relative basis-full font-sans font-bold">
                 // this just makes sure that optional tailwind classes are compiled
                 <div class="bg-slate-300 left-10 translate-x-full text-slate-300" />
-                <div class="w-1/2 inline-flex font-mono h-full items-center justify-center">
+                <div class="w-1/2 inline-flex h-full items-center justify-center">
                     <p
                         class:text-slate-300=move || current_scope() == DigitMode::Choice
                         class:text-white=move || current_scope() == DigitMode::Value
                         class="z-10 transition-all"
                     >
-                        Digits
+                        DIGITS
                     </p>
                 </div>
-                <div class="w-1/2 inline-flex font-mono h-full items-center justify-center">
+                <div class="w-1/2 inline-flex h-full items-center justify-center">
                     <p
                         class:text-slate-300=move || current_scope() == DigitMode::Value
                         class:text-white=move || current_scope() == DigitMode::Choice
                         class="z-10 transition-all"
                     >
-                        Choices
+                        CHOICES
                     </p>
                 </div>
                 <div
                     class:translate-x-full=move || current_scope() == DigitMode::Choice
-                    class="w-1/2 h-full bg-slate-500 absolute transition-all rounded-lg outline outline-1"
+                    class="w-1/2 h-full bg-slate-500 dark:bg-cerulean-blue-600 absolute transition-all rounded-lg"
                 />
             </div>
         </div>
@@ -118,8 +118,8 @@ pub fn SudokuDisplay() -> impl IntoView {
     let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
 
     view! {
-        <div class="bg-slate-100 rounded-3xl p-4 shadow-lg text-xs">
-            <p class="font-mono">{move || sudoku_data().to_string()}</p>
+        <div class="bg-slate-100 dark:bg-zinc-900 dark:outline dark:outline-1 dark:outline-zinc-800 rounded-3xl p-4 shadow-lg text-xs">
+            <p class="font-mono dark:text-white">{move || sudoku_data().to_string()}</p>
             <p class="font-mono text-slate-400">{move || sudoku_data().to_compressed()}</p>
             <Message />
         </div>
@@ -131,7 +131,9 @@ fn Message() -> impl IntoView {
     let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
     // If no message is available, use a zero-width space to keep the layout stable
     view! {
-        <p class="font-mono">{move || game_state().message.unwrap_or_else(|| "\u{200b}".into())}</p>
+        <p class="font-mono dark:text-white">
+            {move || game_state().message.unwrap_or_else(|| "\u{200b}".into())}
+        </p>
     }
 }
 
@@ -141,11 +143,11 @@ fn KeyboardShortcut(
     action: &'static str,
     on_click: impl FnMut(MouseEvent) + 'static,
 ) -> impl IntoView {
-    let class = "p-2 space-x-2 flex outline outline-1 shadow-lg rounded-lg items-center bg-slate-400 hover:bg-blue-400 select-none";
+    let class = "p-2 space-x-2 flex shadow-sm rounded-lg items-center bg-slate-400 hover:bg-blue-400 dark:bg-cerulean-blue-700 dark:hover:bg-cerulean-blue-600 select-none";
     view! {
         <div class=class on:click=on_click>
             <KeyButton key=key />
-            <p class="min-h-0 leading-none text-sm font-mono text-white">{action}</p>
+            <p class="min-h-0 leading-none text-sm font-sans font-bold text-white">{action}</p>
         </div>
     }
 }
@@ -153,7 +155,7 @@ fn KeyboardShortcut(
 #[component]
 fn KeyButton(key: &'static str) -> impl IntoView {
     view! {
-        <div class="flex h-6 w-6 justify-center rounded-lg outline outline-1 items-center bg-slate-500">
+        <div class="flex h-6 w-6 justify-center rounded-lg items-center bg-slate-500">
             <p class="min-h-0 leading-none font-mono font-thin text-lg text-white">{key}</p>
         </div>
     }
@@ -181,31 +183,66 @@ pub fn KeyboardShortcuts() -> impl IntoView {
     };
 
     view! {
-        <div class="flex space-y-2 p-2 bg-slate-100 rounded-2xl flex-col">
+        <div class="flex space-y-2 p-2 bg-slate-100 dark:bg-zinc-900 dark:outline dark:outline-1 dark:outline-zinc-800 rounded-2xl flex-col">
             <KeyboardShortcut
                 key="A"
-                action="Singles"
+                action="SINGLES"
                 on_click=with_signals(place_all_visible_singles)
             />
             <KeyboardShortcut
                 key="S"
-                action="Hidden"
+                action="HIDDEN"
                 on_click=with_signals(place_all_hidden_singles)
             />
             <KeyboardShortcut
                 key="D"
-                action="Doubles"
+                action="DOUBLES"
                 on_click=with_signals(check_all_visible_doubles)
             />
-            <KeyboardShortcut key="F" action="Triples" on_click=with_signals(check_triples) />
+            <KeyboardShortcut key="F" action="TRIPLES" on_click=with_signals(check_triples) />
             <KeyboardShortcut
                 key="G"
-                action="Constraints"
+                action="CONSTRAINTS"
                 on_click=with_signals(check_constraints)
             />
-            <KeyboardShortcut key="H" action="Solve" on_click=with_signals(solve_sudoku) />
-            <KeyboardShortcut key="J" action="Verify" on_click=with_signals(verify_sudoku) />
+            <KeyboardShortcut key="H" action="SOLVE" on_click=with_signals(solve_sudoku) />
+            <KeyboardShortcut key="J" action="VERIFY" on_click=with_signals(verify_sudoku) />
 
+        </div>
+    }
+}
+
+#[component]
+pub fn DarkModeToggle() -> impl IntoView {
+    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
+    let on_click = move |_| {
+        update!(|game_state| {
+            game_state.dark_mode.toggle();
+        });
+    };
+    view! {
+        <div
+            class="p-1 w-14 h-8 flex rounded-full shadow-lg items-center bg-slate-400 hover:bg-blue-400 dark:bg-cerulean-blue-700 dark:hover:bg-cerulean-blue-600 select-none"
+            on:click=on_click
+        >
+            <div class="opacity-0" />
+            <div
+                class:translate-x-full=move || game_state().dark_mode.active()
+                class="w-6 h-6 rounded-full bg-slate-500 dark:bg-cerulean-blue-600 shadow-sm transition-all"
+            >
+                <img
+                    src="https://cdn2.iconfinder.com/data/icons/ui-minimalist-0-1-1/16/UI_Web_Moon_Night_Night_Mode_Dark-512.png"
+                    alt="Dark mode"
+                    class="w-6 h-6 absolute transition-all invert"
+                    class:opacity-0=move || !game_state().dark_mode.active()
+                />
+                <img
+                    src="https://static.thenounproject.com/png/4808961-200.png"
+                    alt="Light mode"
+                    class="w-6 h-6 absolute transition-all invert"
+                    class:opacity-0=move || game_state().dark_mode.active()
+                />
+            </div>
         </div>
     }
 }

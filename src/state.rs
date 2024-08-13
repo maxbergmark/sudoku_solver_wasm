@@ -40,6 +40,34 @@ pub enum DigitMode {
 pub struct GameState {
     pub active_cell: Option<(usize, usize)>,
     pub message: Option<String>,
+    pub dark_mode: DarkMode,
+}
+
+#[derive(Debug, Default, Clone)]
+pub enum DarkMode {
+    Light,
+    #[default]
+    Dark,
+}
+
+impl DarkMode {
+    pub const fn class(&self) -> &'static str {
+        match self {
+            Self::Light => "light",
+            Self::Dark => "dark",
+        }
+    }
+
+    pub fn toggle(&mut self) {
+        *self = match self {
+            Self::Light => Self::Dark,
+            Self::Dark => Self::Light,
+        }
+    }
+
+    pub const fn active(&self) -> bool {
+        matches!(self, Self::Dark)
+    }
 }
 
 impl GameState {
