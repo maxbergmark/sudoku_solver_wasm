@@ -155,7 +155,7 @@ fn KeyboardShortcut(
 #[component]
 fn KeyButton(key: &'static str) -> impl IntoView {
     view! {
-        <div class="flex h-6 w-6 justify-center rounded-lg items-center bg-slate-500">
+        <div class="flex h-6 w-6 justify-center rounded-lg items-center bg-slate-500 dark:bg-cerulean-blue-600 dark:outline dark:outline-1 dark:outline-cerulean-blue-500">
             <p class="min-h-0 leading-none font-mono font-thin text-lg text-white">{key}</p>
         </div>
     }
