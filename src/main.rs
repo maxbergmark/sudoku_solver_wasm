@@ -66,7 +66,7 @@ fn App() -> impl IntoView {
     setup_hotkeys(game_state, sudoku_data);
 
     view! {
-        <div class=move || game_state().dark_mode.class()>
+        <div class=move || game_state().dark_mode.class() on:click=move |_| {}>
             <Router>
                 <main _ref=main_ref>
                     <Routes>
