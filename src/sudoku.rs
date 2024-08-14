@@ -22,8 +22,8 @@ pub fn SudokuGame() -> impl IntoView {
     let update = move |data: &mut SudokuData| update_from_sudoku(data, &sudoku(), true);
     view! {
         {move || sudoku_data.update(update)}
-        <div class="p-1 h-full min-h-screen w-full bg-sky-100 dark:bg-black">
-            <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 dark:bg-zinc-950 dark:outline dark:outline-1 dark:outline-zinc-900 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl">
+        <div class="p-1 h-full min-h-screen w-full bg-sky-100 dark:bg-black fade-dark">
+            <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 dark:bg-zinc-950 dark:outline dark:outline-1 dark:outline-zinc-900 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl fade-dark">
                 <div class="absolute top-0 right-0 p-4 m-10">
                     <DarkModeToggle />
                 </div>
@@ -58,7 +58,7 @@ fn SudokuGrid() -> impl IntoView {
     view! {
         <div
             style="width: min(60vw, 60vh);height: min(60vw, 60vh);font-family: 'Source Sans Pro', serif"
-            class="bg-white border-gray-800 dark:bg-black border-4 shadow-lg flex flex-col m-auto lining-nums"
+            class="bg-white border-gray-800 dark:bg-black border-4 shadow-lg flex flex-col m-auto lining-nums fade-dark"
         >
             <SudokuRow idx=0 />
             <SudokuRow idx=1 />
@@ -81,7 +81,7 @@ fn SudokuRow(idx: usize) -> impl IntoView {
 #[component]
 fn SudokuBox(idx: usize) -> impl IntoView {
     view! {
-        <div class="border-gray-800 border-1 outline-gray-800 outline outline-2 flex flex-col basis-1/3">
+        <div class="border-gray-800 border-2 z-10 flex flex-col basis-1/3">
             <SudokuBoxRow row=idx / 3 * 3 idx=idx % 3 />
             <SudokuBoxRow row=idx / 3 * 3 + 1 idx=idx % 3 />
             <SudokuBoxRow row=idx / 3 * 3 + 2 idx=idx % 3 />
@@ -140,9 +140,9 @@ fn CellChoice(idx: usize, show: bool) -> impl IntoView {
 
 const fn get_cell_classes(is_selected: bool) -> &'static str {
     if is_selected {
-        "border-gray-600 border border-1 hover:bg-cerulean-blue-300 dark:hover:bg-zinc-800 bg-gray-300 dark:bg-zinc-900 flex justify-center items-center basis-1/3 select-none"
+        "border-gray-600 dark:border-gray-800 border border-1 hover:bg-cerulean-blue-300 dark:hover:bg-zinc-800 bg-gray-300 dark:bg-zinc-900 flex justify-center items-center basis-1/3 select-none fade-dark"
     } else {
-        "border-gray-600 border border-1 hover:bg-cerulean-blue-100 dark:hover:bg-zinc-900 flex justify-center items-center basis-1/3 select-none"
+        "border-gray-600 dark:border-gray-800 border border-1 hover:bg-cerulean-blue-100 dark:hover:bg-zinc-900 flex justify-center items-center basis-1/3 select-none fade-dark"
     }
 }
 
@@ -195,7 +195,7 @@ enum ValueType {
 
 fn render_value(value: &ValueType) -> leptos::HtmlElement<leptos::html::Div> {
     let class = match value {
-        ValueType::Value(_) => "min-h-0 leading-none dark:text-gray-600",
+        ValueType::Value(_) => "min-h-0 leading-none dark:text-gray-600 fade-dark",
         ValueType::FixedValue(_) => "min-h-0 leading-none text-cerulean-blue-700",
         ValueType::Error(_) => "min-h-0 leading-none text-red-700",
     };

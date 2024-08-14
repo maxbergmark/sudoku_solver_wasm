@@ -58,7 +58,6 @@ fn App() -> impl IntoView {
 
     let main_ref = create_node_ref::<html::Main>();
     let HotkeysContext { .. } = provide_hotkeys_context(main_ref, false, scopes!());
-    // let darkmode = Darkmode::init();
     let sudoku_data = create_rw_signal(SudokuData::default());
     let game_state = create_rw_signal(GameState::default());
 

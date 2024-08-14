@@ -21,18 +21,14 @@ pub fn setup_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<SudokuDat
         enable_scope,
         ..
     } = use_hotkeys_context();
-    let current_scope = create_rw_signal(DigitMode::Value);
-    provide_context(current_scope);
+    let digit_mode = create_rw_signal(DigitMode::Value);
+    provide_context(digit_mode);
     enable_scope("place_digits".into());
 
-    // switch into the toggle_choices scope
     use_hotkeys!(("Tab") => move |()| {
         toggle_scope("toggle_choices".into());
         toggle_scope("place_digits".into());
-        current_scope.update(|mode| *mode = match mode {
-            DigitMode::Value => DigitMode::Choice,
-            DigitMode::Choice => DigitMode::Value,
-        });
+        digit_mode.update(DigitMode::toggle);
     });
 }
 

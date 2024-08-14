@@ -35,6 +35,15 @@ pub enum DigitMode {
     Choice,
 }
 
+impl DigitMode {
+    pub fn toggle(&mut self) {
+        *self = match self {
+            Self::Value => Self::Choice,
+            Self::Choice => Self::Value,
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 #[allow(clippy::module_name_repetitions)]
 pub struct GameState {
