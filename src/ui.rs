@@ -15,7 +15,7 @@ use crate::{
 #[component]
 pub fn DigitDisplay() -> impl IntoView {
     view! {
-        <div class="p-2 flex flex-col rounded-2xl bg-slate-100 dark:bg-zinc-900 dark:outline dark:outline-1 dark:outline-zinc-800 shadow-2xl justify-between fade-dark">
+        <div class="p-2 flex flex-col rounded-2xl bg-slate-100 dark:bg-zinc-900 outline outline-1 outline-slate-100 dark:outline-zinc-800 shadow-2xl justify-between fade-dark">
             <DigitModeDisplay />
             <div class="flex flex-col space-y-2">
                 <DigitButtonRow start_digit=1 />
@@ -98,7 +98,7 @@ fn DigitModeDisplay() -> impl IntoView {
                 </div>
                 <div
                     class:translate-x-full=move || digit_mode() == DigitMode::Choice
-                    class="w-1/2 h-full bg-slate-500 dark:bg-cerulean-blue-500 dark:outline dark:outline-1 dark:outline-cerulean-blue-400 opacity-50 absolute transition-all rounded-lg fade-dark"
+                    class="w-1/2 h-full bg-slate-500 dark:bg-cerulean-blue-500 outline outline-1 outline-slate-500 dark:outline-cerulean-blue-400 opacity-50 absolute transition-all rounded-lg fade-dark"
                 />
             </div>
         </div>
@@ -110,7 +110,7 @@ pub fn SudokuDisplay() -> impl IntoView {
     let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
 
     view! {
-        <div class="bg-slate-100 dark:bg-zinc-900 dark:outline dark:outline-1 dark:outline-zinc-800 rounded-3xl p-4 shadow-lg text-xs fade-dark">
+        <div class="bg-slate-100 dark:bg-zinc-900 outline outline-1 outline-slate-100 dark:outline-zinc-800 rounded-3xl p-4 shadow-lg text-xs fade-dark">
             <p class="font-mono dark:text-white fade-dark">{move || sudoku_data().to_string()}</p>
             <p class="font-mono text-slate-400">{move || sudoku_data().to_compressed()}</p>
             <Message />
@@ -147,7 +147,7 @@ fn KeyboardShortcut(
 #[component]
 fn KeyButton(key: &'static str) -> impl IntoView {
     view! {
-        <div class="flex h-6 w-6 justify-center rounded-lg items-center bg-slate-500 dark:bg-cerulean-blue-600 dark:outline dark:outline-1 dark:outline-cerulean-blue-500 fade-dark">
+        <div class="flex h-6 w-6 justify-center rounded-lg items-center bg-slate-500 dark:bg-cerulean-blue-600 outline outline-1 outline-slate-500 dark:outline-cerulean-blue-500 fade-dark">
             <p class="min-h-0 leading-none font-sans font-bold text-white">{key}</p>
         </div>
     }
@@ -175,7 +175,7 @@ pub fn KeyboardShortcuts() -> impl IntoView {
     };
 
     view! {
-        <div class="flex space-y-2 p-2 bg-slate-100 dark:bg-zinc-900 dark:outline dark:outline-1 dark:outline-zinc-800 rounded-2xl flex-col fade-dark">
+        <div class="flex space-y-2 p-2 bg-slate-100 dark:bg-zinc-900 outline outline-1 outline-slate-100 dark:outline-zinc-800 rounded-2xl flex-col fade-dark">
             <KeyboardShortcut
                 key="A"
                 action="SINGLES"

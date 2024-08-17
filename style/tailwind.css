@@ -8,6 +8,8 @@
     }
 
     .fade-dark {
-        @apply transition-colors duration-200;
+        transition-property: outline-color, color, background-color, border-color, text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 500ms;
     }
 }

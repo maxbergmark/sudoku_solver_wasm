@@ -23,7 +23,7 @@ pub fn SudokuGame() -> impl IntoView {
     view! {
         {move || sudoku_data.update(update)}
         <div class="p-1 h-full min-h-screen w-full bg-sky-100 dark:bg-black fade-dark">
-            <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 dark:bg-zinc-950 dark:outline dark:outline-1 dark:outline-zinc-900 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl fade-dark">
+            <div class="m-10 p-10 pt-20 space-y-6 bg-slate-300 dark:bg-zinc-950 outline outline-1 outline-slate-300 dark:outline-zinc-900 flex flex-col text-center items-center justify-center shadow-lg rounded-3xl fade-dark">
                 <div class="absolute top-0 right-0 p-4 m-10">
                     <DarkModeToggle />
                 </div>
