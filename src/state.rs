@@ -29,6 +29,12 @@ impl Default for Cell {
     }
 }
 
+impl Cell {
+    pub const fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty { .. })
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DigitMode {
     Value,

@@ -53,13 +53,13 @@ fn setup_solver_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<Sudoku
         }
     };
 
-    use_hotkeys!(("KeyA") => apply_and_show(place_all_visible_singles));
-    use_hotkeys!(("KeyS") => apply_and_show(place_all_hidden_singles));
-    use_hotkeys!(("KeyD") => apply_and_show(check_all_visible_doubles));
-    use_hotkeys!(("KeyF") => apply_and_show(check_triples));
-    use_hotkeys!(("KeyG") => apply_and_show(check_constraints));
-    use_hotkeys!(("KeyH") => apply_and_show(solve_sudoku));
-    use_hotkeys!(("KeyJ") => apply_and_show(verify_sudoku));
+    use_hotkeys!(("A") => apply_and_show(place_all_visible_singles));
+    use_hotkeys!(("S") => apply_and_show(place_all_hidden_singles));
+    use_hotkeys!(("D") => apply_and_show(check_all_visible_doubles));
+    use_hotkeys!(("F") => apply_and_show(check_triples));
+    use_hotkeys!(("G") => apply_and_show(check_constraints));
+    use_hotkeys!(("H") => apply_and_show(solve_sudoku));
+    use_hotkeys!(("J") => apply_and_show(verify_sudoku));
 }
 
 fn setup_movement_hotkeys(game_state: RwSignal<GameState>) {
@@ -76,7 +76,7 @@ fn setup_arrow_hotkey(name: &str, direction: (i32, i32), game_state: RwSignal<Ga
 }
 
 fn setup_digit_hotkey(i: usize, game_state: RwSignal<GameState>, sudoku: RwSignal<SudokuData>) {
-    use_hotkeys!((format!("digit{i}"), "place_digits") => move |()| {
+    use_hotkeys!((format!("{i}"), "place_digits") => move |()| {
         update!(|game_state, sudoku| {
             toggle_digit_if_selected(game_state, sudoku, i as u8);
         });
@@ -88,7 +88,7 @@ fn setup_digit_choice_hotkey(
     game_state: RwSignal<GameState>,
     sudoku: RwSignal<SudokuData>,
 ) {
-    use_hotkeys!((format!("digit{i}"), "toggle_choices") => move |()| {
+    use_hotkeys!((format!("{i}"), "toggle_choices") => move |()| {
         update!(|game_state, sudoku| {
             toggle_choice_if_selected(game_state, sudoku, i as u8);
         });

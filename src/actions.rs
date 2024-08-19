@@ -1,6 +1,9 @@
 use derive_more::From;
 
-use leptos::{RwSignal, SignalUpdate};
+use leptos::leptos_dom::logging::console_log;
+use leptos::{set_timeout, RwSignal, SignalUpdate};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use rust_sudoku_solver::{solver, Sudoku};
 use web_time::Instant;
 
@@ -70,6 +73,19 @@ pub fn solve_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
             }
         })
         .map(|elapsed| format!("Sudoku solved in {elapsed}"))
+}
+
+pub fn animate_solve(sudoku: RwSignal<SudokuData>) {
+    // let sudoku = sudoku.clone();
+    let solution = Ok(Sudoku::from(&sudoku())).and_then(solver::solve); //solver::solve(sudoku().fixed_sudoku());
+    match solution {
+        Ok(solution) => {
+            animate_from_sudoku(sudoku, &solution, false);
+        }
+        Err(_) => {
+            console_log("No solution found");
+        }
+    }
 }
 
 pub fn place_all_visible_singles(sudoku: &mut SudokuData) -> Result<String> {
@@ -170,6 +186,45 @@ pub fn update_from_sudoku(sudoku: &mut SudokuData, solution: &Sudoku, fixed: boo
             } else {
                 sudoku.set(i, j, (solution.digits[idx]) as u8, fixed);
             }
+        }
+    }
+}
+
+// this "works" but is not very performant. the better way to do it would be to set the set_timeout
+// for each cell in the sudoku, and then update the cell in the sudoku. this would allow the
+// animation to be more smooth and not have to wait for the entire sudoku to be updated at once.
+pub fn animate_from_sudoku(sudoku: RwSignal<SudokuData>, solution: &Sudoku, fixed: bool) {
+    console_log("Animating solution");
+    let mut d = std::time::Duration::from_millis(0);
+    let mut vec: Vec<usize> = (0..81).collect();
+    vec.shuffle(&mut thread_rng());
+    for &idx in &vec {
+        let i = idx / 9;
+        let j = idx % 9;
+        let solution = solution.clone();
+        if solution.digits[idx] == 0 {
+            set_timeout(
+                move || {
+                    sudoku.update(|s| {
+                        s.rows[i].cells[j] = Cell::Empty {
+                            choices: to_choices(solution.bitboard[idx]),
+                        };
+                    });
+                },
+                d,
+            );
+        } else {
+            set_timeout(
+                move || {
+                    sudoku.update(|s| {
+                        s.set(i, j, (solution.digits[idx]) as u8, fixed);
+                    });
+                },
+                d,
+            );
+        }
+        if sudoku().rows[i].cells[j].is_empty() {
+            d += std::time::Duration::from_millis(50);
         }
     }
 }

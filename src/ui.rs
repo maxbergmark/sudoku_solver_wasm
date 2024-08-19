@@ -4,8 +4,8 @@ use leptos::{
 
 use crate::{
     actions::{
-        check_all_visible_doubles, check_constraints, check_triples, place_all_hidden_singles,
-        place_all_visible_singles, solve_sudoku, toggle_choice_if_selected,
+        animate_solve, check_all_visible_doubles, check_constraints, check_triples,
+        place_all_hidden_singles, place_all_visible_singles, toggle_choice_if_selected,
         toggle_digit_if_selected, verify_sudoku,
     },
     state::{DigitMode, GameState, SudokuData},
@@ -197,7 +197,7 @@ pub fn KeyboardShortcuts() -> impl IntoView {
                 action="CONSTRAINTS"
                 on_click=with_signals(check_constraints)
             />
-            <KeyboardShortcut key="H" action="SOLVE" on_click=with_signals(solve_sudoku) />
+            <KeyboardShortcut key="H" action="SOLVE" on_click=move |_| { animate_solve(sudoku) } />
             <KeyboardShortcut key="J" action="VERIFY" on_click=with_signals(verify_sudoku) />
 
         </div>
