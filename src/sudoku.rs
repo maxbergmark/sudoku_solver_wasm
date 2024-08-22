@@ -1,18 +1,12 @@
-use std::str::FromStr;
-
 use crate::actions::update_from_sudoku;
-use crate::state::{decompress_string, Cell, GameState, SudokuData};
+use crate::state::{Cell, GameState, SudokuData};
 use crate::ui::{DarkModeToggle, DigitDisplay, KeyboardShortcuts, SudokuDisplay};
-use crate::util::unwrap_or_panic;
-use rust_sudoku_solver::Sudoku;
+use crate::util::{unwrap_or_panic, unwrap_params, SudokuParams};
 
-use leptos::{component, use_context, view, IntoView, Params, RwSignal, SignalUpdate, SignalWith};
-use leptos_router::{use_query, Params, ParamsError};
-
-#[derive(Params, PartialEq, Debug)]
-struct SudokuParams {
-    sudoku: Option<String>,
-}
+use leptos::{
+    component, create_memo, use_context, view, IntoView, RwSignal, SignalUpdate, SignalWith,
+};
+use leptos_router::use_query;
 
 #[component]
 pub fn SudokuGame() -> impl IntoView {
@@ -36,21 +30,6 @@ pub fn SudokuGame() -> impl IntoView {
             </div>
         </div>
     }
-}
-
-fn unwrap_params(params: &Result<SudokuParams, ParamsError>) -> Sudoku {
-    params
-        .as_ref()
-        .ok()
-        .and_then(|p| p.sudoku.clone())
-        .and_then(|s| decompress_string(&s))
-        .filter(|s| is_valid_game_str(s))
-        .and_then(|s| Sudoku::from_str(&s).ok())
-        .unwrap_or_default()
-}
-
-fn is_valid_game_str(game_str: &str) -> bool {
-    game_str.len() == 81 && game_str.chars().all(|c| c.is_ascii_digit() || c == '.')
 }
 
 #[component]
@@ -108,7 +87,13 @@ fn SudokuCell(row: usize, col: usize) -> impl IntoView {
             state.active_cell = Some((row, col));
         });
     };
-    let class = move || get_cell_classes(is_active_cell(row, col));
+    let class = move || {
+        if game_state().is_active_cell(row, col) {
+            "sudoku-cell hover:bg-cerulean-blue-300 dark:hover:bg-zinc-800 bg-gray-300 dark:bg-zinc-900"
+        } else {
+            "sudoku-cell hover:bg-cerulean-blue-100 dark:hover:bg-zinc-900"
+        }
+    };
     view! {
         <div style="font-size: min(5vw, 5vh);" class=class on:click=on_click>
             <CellInside row=row col=col />
@@ -138,19 +123,6 @@ fn CellChoice(idx: usize, show: bool) -> impl IntoView {
     }
 }
 
-const fn get_cell_classes(is_selected: bool) -> &'static str {
-    if is_selected {
-        "border-gray-600 dark:border-gray-800 border border-1 hover:bg-cerulean-blue-300 dark:hover:bg-zinc-800 bg-gray-300 dark:bg-zinc-900 flex justify-center items-center basis-1/3 select-none fade-dark"
-    } else {
-        "border-gray-600 dark:border-gray-800 border border-1 hover:bg-cerulean-blue-100 dark:hover:bg-zinc-900 flex justify-center items-center basis-1/3 select-none fade-dark"
-    }
-}
-
-fn is_active_cell(row: usize, col: usize) -> bool {
-    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
-    game_state.with(|state| state.active_cell.is_some_and(|(r, c)| r == row && c == col))
-}
-
 fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div> {
     if choices.iter().all(|&b| b) {
         view! { <div class="flex flex-col w-full h-full" /> }
@@ -171,17 +143,19 @@ fn render_choices(choices: &[bool; 9]) -> leptos::HtmlElement<leptos::html::Div>
 #[component]
 fn CellInside(row: usize, col: usize) -> impl IntoView {
     let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
-    move || sudoku_data.with(|sudoku| render_cell(sudoku, row, col))
+    let effect = create_memo(move |_| sudoku_data.with(|sudoku| sudoku.get(row, col)));
+    move || effect.with(render_cell)
 }
 
-fn render_cell(
-    sudoku: &SudokuData,
-    row: usize,
-    col: usize,
-) -> leptos::HtmlElement<leptos::html::Div> {
-    match sudoku.get(row, col) {
+fn render_cell(cell: &Cell) -> leptos::HtmlElement<leptos::html::Div> {
+    match cell {
         Cell::Empty { choices } => render_choices(choices),
         Cell::Value { value, .. } => render_value(&ValueType::Value(*value)),
+        Cell::FadeInValue {
+            value,
+            fade_duration_ms,
+            ..
+        } => render_value(&ValueType::FadeInValue(*value, *fade_duration_ms)),
         Cell::FixedValue { value } => render_value(&ValueType::FixedValue(*value)),
         Cell::Error { value, .. } => render_value(&ValueType::Error(*value)),
     }
@@ -189,22 +163,38 @@ fn render_cell(
 
 enum ValueType {
     Value(u8),
+    FadeInValue(u8, i32),
     FixedValue(u8),
     Error(u8),
 }
 
 fn render_value(value: &ValueType) -> leptos::HtmlElement<leptos::html::Div> {
-    let class = match value {
-        ValueType::Value(_) => "min-h-0 leading-none dark:text-gray-600 fade-dark",
-        ValueType::FixedValue(_) => "min-h-0 leading-none text-cerulean-blue-700",
-        ValueType::Error(_) => "min-h-0 leading-none text-red-700",
+    let (style, class) = match value {
+        ValueType::Value(_) => (
+            String::default(),
+            "min-h-0 leading-none dark:text-gray-500 fade-dark",
+        ),
+        ValueType::FadeInValue(_, duration) => (
+            format!("animation-delay: {duration}ms;"),
+            "min-h-0 leading-none dark:text-gray-500 fade-in fade-dark",
+        ),
+        ValueType::FixedValue(_) => (
+            String::default(),
+            "min-h-0 leading-none text-cerulean-blue-700",
+        ),
+        ValueType::Error(_) => (String::default(), "min-h-0 leading-none text-red-700"),
     };
     let v = match value {
-        ValueType::Value(v) | ValueType::FixedValue(v) | ValueType::Error(v) => *v,
+        ValueType::Value(v)
+        | ValueType::FixedValue(v)
+        | ValueType::Error(v)
+        | ValueType::FadeInValue(v, _) => *v,
     };
     view! {
         <div>
-            <p class=class>{v}</p>
+            <p class=class style=style>
+                {v}
+            </p>
         </div>
     }
 }

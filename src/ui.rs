@@ -1,13 +1,11 @@
 use leptos::{
-    component, ev::MouseEvent, update, use_context, view, IntoView, RwSignal, SignalUpdate,
+    component, ev::MouseEvent, update, use_context, view, CollectView, IntoView, RwSignal,
+    SignalUpdate,
 };
 
 use crate::{
-    actions::{
-        check_all_visible_doubles, check_constraints, check_triples, place_all_hidden_singles,
-        place_all_visible_singles, solve_sudoku, toggle_choice_if_selected,
-        toggle_digit_if_selected, verify_sudoku,
-    },
+    actions::{apply_solution, toggle_choice_if_selected, toggle_digit_if_selected},
+    hotkeys::get_hotkeys,
     state::{DigitMode, GameState, SudokuData},
     util::unwrap_or_panic,
 };
@@ -77,7 +75,7 @@ fn DigitModeDisplay() -> impl IntoView {
             </div>
             <div class="max-w-full h-full flex relative basis-full font-sans font-bold">
                 // this just makes sure that optional tailwind classes are compiled
-                // <div class="bg-slate-300 left-10 translate-x-full text-slate-300" />
+                // bg-slate-300 left-10 translate-x-full text-slate-300
                 <div class="w-1/2 inline-flex h-full items-center justify-center">
                     <p
                         class:text-slate-300=move || digit_mode() == DigitMode::Choice
@@ -153,18 +151,6 @@ fn KeyButton(key: &'static str) -> impl IntoView {
     }
 }
 
-fn apply_solution(
-    game_state: RwSignal<GameState>,
-    sudoku: RwSignal<SudokuData>,
-    f: impl Fn(&mut SudokuData) -> crate::Result<String>,
-) -> impl Fn(MouseEvent) {
-    move |_| {
-        update!(|game_state, sudoku| {
-            game_state.show_result(f(sudoku));
-        });
-    }
-}
-
 #[component]
 pub fn KeyboardShortcuts() -> impl IntoView {
     let sudoku = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
@@ -176,30 +162,18 @@ pub fn KeyboardShortcuts() -> impl IntoView {
 
     view! {
         <div class="flex space-y-2 p-2 bg-slate-100 dark:bg-zinc-900 outline outline-1 outline-slate-100 dark:outline-zinc-800 rounded-2xl flex-col fade-dark">
-            <KeyboardShortcut
-                key="A"
-                action="SINGLES"
-                on_click=with_signals(place_all_visible_singles)
-            />
-            <KeyboardShortcut
-                key="S"
-                action="HIDDEN"
-                on_click=with_signals(place_all_hidden_singles)
-            />
-            <KeyboardShortcut
-                key="D"
-                action="DOUBLES"
-                on_click=with_signals(check_all_visible_doubles)
-            />
-            <KeyboardShortcut key="F" action="TRIPLES" on_click=with_signals(check_triples) />
-            <KeyboardShortcut
-                key="G"
-                action="CONSTRAINTS"
-                on_click=with_signals(check_constraints)
-            />
-            <KeyboardShortcut key="H" action="SOLVE" on_click=with_signals(solve_sudoku) />
-            <KeyboardShortcut key="J" action="VERIFY" on_click=with_signals(verify_sudoku) />
-
+            {get_hotkeys()
+                .into_iter()
+                .map(|shortcut| {
+                    view! {
+                        <KeyboardShortcut
+                            key=shortcut.key
+                            action=shortcut.action
+                            on_click=with_signals(shortcut.on_click)
+                        />
+                    }
+                })
+                .collect_view()}
         </div>
     }
 }

@@ -1,6 +1,10 @@
 use derive_more::From;
 
-use leptos::{RwSignal, SignalUpdate};
+use leptos::ev::MouseEvent;
+use leptos::leptos_dom::logging::console_log;
+use leptos::{update, RwSignal, SignalUpdate};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use rust_sudoku_solver::{solver, Sudoku};
 use web_time::Instant;
 
@@ -59,7 +63,7 @@ pub fn solve_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
     Ok(Sudoku::from(&*sudoku_data))
         .and_then_timed(solver::solve)
         .map(|(solution, elapsed)| {
-            update_from_sudoku(sudoku_data, &solution, false);
+            update_from_sudoku_animated(sudoku_data, &solution, false);
             elapsed
         })
         .map_err(|err| {
@@ -99,14 +103,16 @@ pub fn check_constraints(sudoku: &mut SudokuData) -> Result<String> {
 
 pub fn toggle_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData, digit: u8) {
     if let Some((row, col)) = game_state.active_cell {
-        let cell = *sudoku.get(row, col);
+        let cell = sudoku.get(row, col);
         match cell {
             Cell::Empty { choices } => {
                 if choices[(digit - 1) as usize] {
                     sudoku.set(row, col, digit, false);
                 }
             }
-            Cell::Value { value, choices } | Cell::Error { value, choices } => {
+            Cell::Value { value, choices }
+            | Cell::Error { value, choices }
+            | Cell::FadeInValue { value, choices, .. } => {
                 toggle_if_available(value, digit, &choices, sudoku, row, col);
             }
             Cell::FixedValue { .. } => {}
@@ -121,7 +127,10 @@ pub fn toggle_choice_if_selected(game_state: &GameState, sudoku: &mut SudokuData
             Cell::Empty { choices } => {
                 choices[(digit - 1) as usize] = !choices[(digit - 1) as usize];
             }
-            Cell::Value { .. } | Cell::Error { .. } | Cell::FixedValue { .. } => {}
+            Cell::Value { .. }
+            | Cell::Error { .. }
+            | Cell::FixedValue { .. }
+            | Cell::FadeInValue { .. } => {}
         }
     }
 }
@@ -174,6 +183,26 @@ pub fn update_from_sudoku(sudoku: &mut SudokuData, solution: &Sudoku, fixed: boo
     }
 }
 
+pub fn update_from_sudoku_animated(sudoku: &mut SudokuData, solution: &Sudoku, _fixed: bool) {
+    console_log("Animating solution");
+    let mut vec: Vec<usize> = (0..81).collect();
+    let mut duration = 0;
+    vec.shuffle(&mut thread_rng());
+    for &idx in &vec {
+        let i = idx / 9;
+        let j = idx % 9;
+        let solution = solution.clone();
+        if solution.digits[idx] == 0 {
+            sudoku.rows[i].cells[j] = Cell::Empty {
+                choices: to_choices(solution.bitboard[idx]),
+            };
+        } else {
+            sudoku.set_fade(i, j, (solution.digits[idx]) as u8, duration);
+        }
+        duration += 5;
+    }
+}
+
 pub fn compare_with_solution(sudoku: &mut SudokuData) -> Result<()> {
     let solution = solver::solve(sudoku.fixed_sudoku())?;
 
@@ -192,6 +221,18 @@ pub fn compare_with_solution(sudoku: &mut SudokuData) -> Result<()> {
         }
     }
     Ok(())
+}
+
+pub fn apply_solution(
+    game_state: RwSignal<GameState>,
+    sudoku: RwSignal<SudokuData>,
+    f: impl Fn(&mut SudokuData) -> crate::Result<String>,
+) -> impl Fn(MouseEvent) {
+    move |_| {
+        update!(|game_state, sudoku| {
+            game_state.show_result(f(sudoku));
+        });
+    }
 }
 
 fn is_valid_cell(row: i32, col: i32) -> bool {
@@ -220,7 +261,7 @@ fn apply_constraint(
             Ok(sudoku)
         })
         .map(|(solution, elapsed)| {
-            update_from_sudoku(sudoku_data, &solution, false);
+            update_from_sudoku_animated(sudoku_data, &solution, false);
             elapsed
         })
 }
