@@ -1,7 +1,8 @@
 use derive_more::From;
 
+use leptos::ev::MouseEvent;
 use leptos::leptos_dom::logging::console_log;
-use leptos::{set_timeout, RwSignal, SignalUpdate};
+use leptos::{update, RwSignal, SignalUpdate};
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rust_sudoku_solver::{solver, Sudoku};
@@ -62,7 +63,7 @@ pub fn solve_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
     Ok(Sudoku::from(&*sudoku_data))
         .and_then_timed(solver::solve)
         .map(|(solution, elapsed)| {
-            update_from_sudoku(sudoku_data, &solution, false);
+            update_from_sudoku_animated(sudoku_data, &solution, false);
             elapsed
         })
         .map_err(|err| {
@@ -73,19 +74,6 @@ pub fn solve_sudoku(sudoku_data: &mut SudokuData) -> Result<String> {
             }
         })
         .map(|elapsed| format!("Sudoku solved in {elapsed}"))
-}
-
-pub fn animate_solve(sudoku: RwSignal<SudokuData>) {
-    // let sudoku = sudoku.clone();
-    let solution = Ok(Sudoku::from(&sudoku())).and_then(solver::solve); //solver::solve(sudoku().fixed_sudoku());
-    match solution {
-        Ok(solution) => {
-            animate_from_sudoku(sudoku, &solution, false);
-        }
-        Err(_) => {
-            console_log("No solution found");
-        }
-    }
 }
 
 pub fn place_all_visible_singles(sudoku: &mut SudokuData) -> Result<String> {
@@ -115,14 +103,16 @@ pub fn check_constraints(sudoku: &mut SudokuData) -> Result<String> {
 
 pub fn toggle_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData, digit: u8) {
     if let Some((row, col)) = game_state.active_cell {
-        let cell = *sudoku.get(row, col);
+        let cell = sudoku.get(row, col);
         match cell {
             Cell::Empty { choices } => {
                 if choices[(digit - 1) as usize] {
                     sudoku.set(row, col, digit, false);
                 }
             }
-            Cell::Value { value, choices } | Cell::Error { value, choices } => {
+            Cell::Value { value, choices }
+            | Cell::Error { value, choices }
+            | Cell::FadeInValue { value, choices, .. } => {
                 toggle_if_available(value, digit, &choices, sudoku, row, col);
             }
             Cell::FixedValue { .. } => {}
@@ -137,7 +127,10 @@ pub fn toggle_choice_if_selected(game_state: &GameState, sudoku: &mut SudokuData
             Cell::Empty { choices } => {
                 choices[(digit - 1) as usize] = !choices[(digit - 1) as usize];
             }
-            Cell::Value { .. } | Cell::Error { .. } | Cell::FixedValue { .. } => {}
+            Cell::Value { .. }
+            | Cell::Error { .. }
+            | Cell::FixedValue { .. }
+            | Cell::FadeInValue { .. } => {}
         }
     }
 }
@@ -190,42 +183,23 @@ pub fn update_from_sudoku(sudoku: &mut SudokuData, solution: &Sudoku, fixed: boo
     }
 }
 
-// this "works" but is not very performant. the better way to do it would be to set the set_timeout
-// for each cell in the sudoku, and then update the cell in the sudoku. this would allow the
-// animation to be more smooth and not have to wait for the entire sudoku to be updated at once.
-pub fn animate_from_sudoku(sudoku: RwSignal<SudokuData>, solution: &Sudoku, fixed: bool) {
+pub fn update_from_sudoku_animated(sudoku: &mut SudokuData, solution: &Sudoku, _fixed: bool) {
     console_log("Animating solution");
-    let mut d = std::time::Duration::from_millis(0);
     let mut vec: Vec<usize> = (0..81).collect();
+    let mut duration = 0;
     vec.shuffle(&mut thread_rng());
     for &idx in &vec {
         let i = idx / 9;
         let j = idx % 9;
         let solution = solution.clone();
         if solution.digits[idx] == 0 {
-            set_timeout(
-                move || {
-                    sudoku.update(|s| {
-                        s.rows[i].cells[j] = Cell::Empty {
-                            choices: to_choices(solution.bitboard[idx]),
-                        };
-                    });
-                },
-                d,
-            );
+            sudoku.rows[i].cells[j] = Cell::Empty {
+                choices: to_choices(solution.bitboard[idx]),
+            };
         } else {
-            set_timeout(
-                move || {
-                    sudoku.update(|s| {
-                        s.set(i, j, (solution.digits[idx]) as u8, fixed);
-                    });
-                },
-                d,
-            );
+            sudoku.set_fade(i, j, (solution.digits[idx]) as u8, duration);
         }
-        if sudoku().rows[i].cells[j].is_empty() {
-            d += std::time::Duration::from_millis(50);
-        }
+        duration += 5;
     }
 }
 
@@ -247,6 +221,18 @@ pub fn compare_with_solution(sudoku: &mut SudokuData) -> Result<()> {
         }
     }
     Ok(())
+}
+
+pub fn apply_solution(
+    game_state: RwSignal<GameState>,
+    sudoku: RwSignal<SudokuData>,
+    f: impl Fn(&mut SudokuData) -> crate::Result<String>,
+) -> impl Fn(MouseEvent) {
+    move |_| {
+        update!(|game_state, sudoku| {
+            game_state.show_result(f(sudoku));
+        });
+    }
 }
 
 fn is_valid_cell(row: i32, col: i32) -> bool {
@@ -275,7 +261,7 @@ fn apply_constraint(
             Ok(sudoku)
         })
         .map(|(solution, elapsed)| {
-            update_from_sudoku(sudoku_data, &solution, false);
+            update_from_sudoku_animated(sudoku_data, &solution, false);
             elapsed
         })
 }

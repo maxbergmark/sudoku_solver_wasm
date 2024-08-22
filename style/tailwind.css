@@ -7,9 +7,30 @@
         @apply rounded-lg bg-slate-400 dark:bg-cerulean-blue-700 hover:bg-blue-400 dark:hover:bg-cerulean-blue-600 select-none shadow-sm fade-dark;
     }
 
+    .sudoku-cell {
+        @apply border-gray-600 dark:border-gray-800 border flex justify-center items-center basis-1/3 select-none fade-dark;
+    }
+
     .fade-dark {
         transition-property: outline-color, color, background-color, border-color, text-decoration-color, fill, stroke;
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
         transition-duration: 500ms;
+    }
+
+    .fade-in {
+        animation: fadeIn 200ms;
+        animation-fill-mode: both;
+    }
+
+    @keyframes fadeIn {
+        0% {
+            opacity: 0;
+            font-size: 50%;
+        }
+
+        100% {
+            opacity: 1;
+            font-size: 100%;
+        }
     }
 }
