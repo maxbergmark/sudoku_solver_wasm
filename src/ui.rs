@@ -4,7 +4,9 @@ use leptos::{
 };
 
 use crate::{
-    actions::{apply_solution, toggle_choice_if_selected, toggle_digit_if_selected},
+    actions::{
+        apply_solution, load_random_sudoku, toggle_choice_if_selected, toggle_digit_if_selected,
+    },
     hotkeys::get_hotkeys,
     state::{DigitMode, GameState, SudokuData},
     util::unwrap_or_panic,
@@ -173,7 +175,20 @@ pub fn KeyboardShortcuts() -> impl IntoView {
                         />
                     }
                 })
-                .collect_view()}
+                .collect_view()} <GenerateSudokuButton />
+        </div>
+    }
+}
+
+#[component]
+fn GenerateSudokuButton() -> impl IntoView {
+    view! {
+        <div
+            class="btn-primary pr-4 p-2 space-x-2 flex items-center"
+            on:click=move |_| load_random_sudoku()
+        >
+            <KeyButton key="N" />
+            <p class="min-h-0 leading-none font-sans font-bold text-white">GENERATE</p>
         </div>
     }
 }

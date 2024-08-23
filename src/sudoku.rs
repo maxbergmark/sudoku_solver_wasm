@@ -13,7 +13,10 @@ pub fn SudokuGame() -> impl IntoView {
     let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
     let params = use_query::<SudokuParams>();
     let sudoku = move || params.with(unwrap_params);
-    let update = move |data: &mut SudokuData| update_from_sudoku(data, &sudoku(), true);
+    let update = move |data: &mut SudokuData| {
+        data.clear();
+        update_from_sudoku(data, &sudoku(), true);
+    };
     view! {
         {move || sudoku_data.update(update)}
         <div class="p-1 h-full min-h-screen w-full bg-sky-100 dark:bg-black fade-dark">

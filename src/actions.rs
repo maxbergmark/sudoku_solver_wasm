@@ -1,14 +1,17 @@
 use derive_more::From;
 
 use leptos::ev::MouseEvent;
-use leptos::leptos_dom::logging::console_log;
+use leptos::leptos_dom::logging::{console_error, console_log};
 use leptos::{update, RwSignal, SignalUpdate};
+use leptos_router::NavigateOptions;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rust_sudoku_solver::{solver, Sudoku};
 use web_time::Instant;
 
+use crate::generator::get_random_sudoku;
 use crate::state::{Cell, GameState, SudokuData};
+use crate::util::compress_string;
 use crate::Result;
 
 #[derive(Debug, From)]
@@ -264,4 +267,14 @@ fn apply_constraint(
             update_from_sudoku_animated(sudoku_data, &solution, false);
             elapsed
         })
+}
+
+pub fn load_random_sudoku() {
+    let navigate = leptos_router::use_navigate();
+    let s = get_random_sudoku()
+        .inspect_err(|_| console_error("Failed to generate sudoku"))
+        .ok()
+        .and_then(|s| compress_string(s.as_str()))
+        .unwrap_or_default();
+    navigate(format!("/?sudoku={s}").as_str(), NavigateOptions::default());
 }

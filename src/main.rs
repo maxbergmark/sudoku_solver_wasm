@@ -43,6 +43,7 @@ use rstest as _;
 
 mod actions;
 mod error;
+mod generator;
 mod hotkeys;
 mod state;
 mod sudoku;

@@ -210,6 +210,14 @@ impl SudokuData {
         }
     }
 
+    pub fn clear(&mut self) {
+        for i in 0..9 {
+            for j in 0..9 {
+                self.rows[i].cells[j] = Cell::Empty { choices: [true; 9] };
+            }
+        }
+    }
+
     pub const fn get(&self, row: usize, col: usize) -> Cell {
         self.rows[row].cells[col]
     }

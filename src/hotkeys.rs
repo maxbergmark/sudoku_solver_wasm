@@ -4,8 +4,8 @@ use leptos_hotkeys::{use_hotkeys, use_hotkeys_context, use_hotkeys_scoped, Hotke
 use crate::{
     actions::{
         check_all_visible_doubles, check_constraints, check_triples, clear_digit_if_selected,
-        handle_arrow, place_all_hidden_singles, place_all_visible_singles, solve_sudoku,
-        toggle_choice_if_selected, toggle_digit_if_selected, verify_sudoku,
+        handle_arrow, load_random_sudoku, place_all_hidden_singles, place_all_visible_singles,
+        solve_sudoku, toggle_choice_if_selected, toggle_digit_if_selected, verify_sudoku,
     },
     state::{DigitMode, GameState, SudokuData},
     Result,
@@ -104,6 +104,7 @@ fn setup_solver_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<Sudoku
     for shortcut in &get_hotkeys() {
         use_hotkeys!((shortcut.key) => apply_and_show(shortcut.on_click));
     }
+    use_hotkeys!(("N") => move |()| load_random_sudoku());
 }
 
 fn setup_movement_hotkeys(game_state: RwSignal<GameState>) {
