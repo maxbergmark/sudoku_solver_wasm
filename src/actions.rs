@@ -276,5 +276,8 @@ pub fn load_random_sudoku() {
         .ok()
         .and_then(|s| compress_string(s.as_str()))
         .unwrap_or_default();
-    navigate(format!("/?sudoku={s}").as_str(), NavigateOptions::default());
+    navigate(
+        format!("/sudoku_solver_wasm/?sudoku={s}").as_str(),
+        NavigateOptions::default(),
+    );
 }
