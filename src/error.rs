@@ -10,6 +10,7 @@ pub enum Error {
     Sudoku(rust_sudoku_solver::Error),
     #[from]
     Utf8(std::string::FromUtf8Error),
+    GenerateSudoku,
 }
 
 impl Display for Error {
@@ -17,6 +18,7 @@ impl Display for Error {
         match self {
             Self::Sudoku(e) => write!(f, "{e}"),
             Self::Utf8(e) => write!(f, "Invalid UTF-8: {e}"),
+            Self::GenerateSudoku => write!(f, "Failed to generate sudoku"),
         }
     }
 }

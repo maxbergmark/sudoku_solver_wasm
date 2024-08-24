@@ -7,7 +7,8 @@ use crate::{
     actions::{
         apply_solution, load_random_sudoku, toggle_choice_if_selected, toggle_digit_if_selected,
     },
-    hotkeys::get_hotkeys,
+    generator::Difficulty,
+    hotkeys::{get_generator_hotkeys, get_solver_hotkeys},
     state::{DigitMode, GameState, SudokuData},
     util::unwrap_or_panic,
 };
@@ -164,7 +165,7 @@ pub fn KeyboardShortcuts() -> impl IntoView {
 
     view! {
         <div class="flex space-y-2 p-2 bg-slate-100 dark:bg-zinc-900 outline outline-1 outline-slate-100 dark:outline-zinc-800 rounded-2xl flex-col fade-dark">
-            {get_hotkeys()
+            {get_solver_hotkeys()
                 .into_iter()
                 .map(|shortcut| {
                     view! {
@@ -175,20 +176,44 @@ pub fn KeyboardShortcuts() -> impl IntoView {
                         />
                     }
                 })
-                .collect_view()} <GenerateSudokuButton />
+                .collect_view()}
         </div>
     }
 }
 
 #[component]
-fn GenerateSudokuButton() -> impl IntoView {
+pub fn GeneratorShortcuts() -> impl IntoView {
+    view! {
+        <div class="flex space-y-2 p-2 bg-slate-100 justify-between dark:bg-zinc-900 outline outline-1 outline-slate-100 dark:outline-zinc-800 rounded-2xl flex-col fade-dark">
+            {get_generator_hotkeys()
+                .into_iter()
+                .map(|shortcut| {
+                    view! {
+                        <GenerateSudokuButton
+                            key=shortcut.key
+                            text=shortcut.action
+                            difficulty=shortcut.difficulty
+                        />
+                    }
+                })
+                .collect_view()}
+        </div>
+    }
+}
+
+#[component]
+fn GenerateSudokuButton(
+    key: &'static str,
+    text: &'static str,
+    difficulty: Difficulty,
+) -> impl IntoView {
     view! {
         <div
             class="btn-primary pr-4 p-2 space-x-2 flex items-center"
-            on:click=move |_| load_random_sudoku()
+            on:click=move |_| load_random_sudoku(difficulty)
         >
-            <KeyButton key="N" />
-            <p class="min-h-0 leading-none font-sans font-bold text-white">GENERATE</p>
+            <KeyButton key=key />
+            <p class="min-h-0 leading-none font-sans font-bold text-white">{text}</p>
         </div>
     }
 }

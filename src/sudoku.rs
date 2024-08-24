@@ -1,6 +1,8 @@
 use crate::actions::update_from_sudoku;
 use crate::state::{Cell, GameState, SudokuData};
-use crate::ui::{DarkModeToggle, DigitDisplay, KeyboardShortcuts, SudokuDisplay};
+use crate::ui::{
+    DarkModeToggle, DigitDisplay, GeneratorShortcuts, KeyboardShortcuts, SudokuDisplay,
+};
 use crate::util::{unwrap_or_panic, unwrap_params, SudokuParams};
 
 use leptos::{
@@ -28,6 +30,7 @@ pub fn SudokuGame() -> impl IntoView {
                 <div class="flex space-x-10">
                     <DigitDisplay />
                     <KeyboardShortcuts />
+                    <GeneratorShortcuts />
                 </div>
                 <SudokuDisplay />
             </div>

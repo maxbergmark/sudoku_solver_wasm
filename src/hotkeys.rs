@@ -7,6 +7,7 @@ use crate::{
         handle_arrow, load_random_sudoku, place_all_hidden_singles, place_all_visible_singles,
         solve_sudoku, toggle_choice_if_selected, toggle_digit_if_selected, verify_sudoku,
     },
+    generator::Difficulty,
     state::{DigitMode, GameState, SudokuData},
     Result,
 };
@@ -15,6 +16,12 @@ pub struct Hotkey {
     pub key: &'static str,
     pub action: &'static str,
     pub on_click: fn(&mut SudokuData) -> Result<String>,
+}
+
+pub struct GeneratorHotkey {
+    pub key: &'static str,
+    pub action: &'static str,
+    pub difficulty: Difficulty,
 }
 
 #[allow(clippy::module_name_repetitions)]
@@ -52,7 +59,7 @@ fn setup_placement_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<Sud
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub fn get_hotkeys() -> Vec<Hotkey> {
+pub fn get_solver_hotkeys() -> Vec<Hotkey> {
     vec![
         Hotkey {
             key: "A",
@@ -92,6 +99,27 @@ pub fn get_hotkeys() -> Vec<Hotkey> {
     ]
 }
 
+#[allow(clippy::module_name_repetitions)]
+pub fn get_generator_hotkeys() -> Vec<GeneratorHotkey> {
+    vec![
+        GeneratorHotkey {
+            key: "B",
+            action: "HARD",
+            difficulty: Difficulty::Hard,
+        },
+        GeneratorHotkey {
+            key: "N",
+            action: "17 CLUE",
+            difficulty: Difficulty::Clue17,
+        },
+        GeneratorHotkey {
+            key: "M",
+            action: "EXTREME",
+            difficulty: Difficulty::Extreme,
+        },
+    ]
+}
+
 fn setup_solver_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<SudokuData>) {
     let apply_and_show = move |f: fn(&mut SudokuData) -> crate::Result<String>| {
         move |()| {
@@ -101,10 +129,12 @@ fn setup_solver_hotkeys(game_state: RwSignal<GameState>, sudoku: RwSignal<Sudoku
         }
     };
 
-    for shortcut in &get_hotkeys() {
+    for shortcut in get_solver_hotkeys() {
         use_hotkeys!((shortcut.key) => apply_and_show(shortcut.on_click));
     }
-    use_hotkeys!(("N") => move |()| load_random_sudoku());
+    for shortcut in get_generator_hotkeys() {
+        use_hotkeys!((shortcut.key) => move |()| load_random_sudoku(shortcut.difficulty));
+    }
 }
 
 fn setup_movement_hotkeys(game_state: RwSignal<GameState>) {

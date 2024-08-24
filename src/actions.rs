@@ -9,7 +9,7 @@ use rand::thread_rng;
 use rust_sudoku_solver::{solver, Sudoku};
 use web_time::Instant;
 
-use crate::generator::get_random_sudoku;
+use crate::generator::{get_random_sudoku, Difficulty};
 use crate::state::{Cell, GameState, SudokuData};
 use crate::util::compress_string;
 use crate::Result;
@@ -269,9 +269,9 @@ fn apply_constraint(
         })
 }
 
-pub fn load_random_sudoku() {
+pub fn load_random_sudoku(difficulty: Difficulty) {
     let navigate = leptos_router::use_navigate();
-    let s = get_random_sudoku()
+    let s = get_random_sudoku(difficulty)
         .inspect_err(|_| console_error("Failed to generate sudoku"))
         .ok()
         .and_then(|s| compress_string(s.as_str()))
