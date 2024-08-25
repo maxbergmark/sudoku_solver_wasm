@@ -157,11 +157,16 @@ fn render_cell(cell: &Cell) -> leptos::HtmlElement<leptos::html::Div> {
     match cell {
         Cell::Empty { choices } => render_choices(choices),
         Cell::Value { value, .. } => render_value(&ValueType::Value(*value)),
-        Cell::FadeInValue {
+        Cell::AnimatedValue {
             value,
-            fade_duration_ms,
+            fade_delay_ms,
+            animation,
             ..
-        } => render_value(&ValueType::FadeInValue(*value, *fade_duration_ms)),
+        } => render_value(&ValueType::FadeInValue {
+            value: *value,
+            fade_delay_ms: *fade_delay_ms,
+            animation,
+        }),
         Cell::FixedValue { value } => render_value(&ValueType::FixedValue(*value)),
         Cell::Error { value, .. } => render_value(&ValueType::Error(*value)),
     }
@@ -169,7 +174,11 @@ fn render_cell(cell: &Cell) -> leptos::HtmlElement<leptos::html::Div> {
 
 enum ValueType {
     Value(u8),
-    FadeInValue(u8, i32),
+    FadeInValue {
+        value: u8,
+        fade_delay_ms: i32,
+        animation: &'static str,
+    },
     FixedValue(u8),
     Error(u8),
 }
@@ -178,23 +187,30 @@ fn render_value(value: &ValueType) -> leptos::HtmlElement<leptos::html::Div> {
     let (style, class) = match value {
         ValueType::Value(_) => (
             String::default(),
-            "min-h-0 leading-none dark:text-gray-500 fade-dark",
+            "min-h-0 leading-none dark:text-gray-500 fade-dark".to_string(),
         ),
-        ValueType::FadeInValue(_, duration) => (
-            format!("animation-delay: {duration}ms;"),
-            "min-h-0 leading-none dark:text-gray-500 fade-in fade-dark",
+        ValueType::FadeInValue {
+            fade_delay_ms,
+            animation,
+            ..
+        } => (
+            format!("animation-delay: {fade_delay_ms}ms;"),
+            format!("min-h-0 leading-none dark:text-gray-500 {animation} fade-dark"),
         ),
         ValueType::FixedValue(_) => (
             String::default(),
-            "min-h-0 leading-none text-cerulean-blue-700",
+            "min-h-0 leading-none text-cerulean-blue-700".to_string(),
         ),
-        ValueType::Error(_) => (String::default(), "min-h-0 leading-none text-red-700"),
+        ValueType::Error(_) => (
+            String::default(),
+            "min-h-0 leading-none text-red-700".to_string(),
+        ),
     };
     let v = match value {
         ValueType::Value(v)
         | ValueType::FixedValue(v)
         | ValueType::Error(v)
-        | ValueType::FadeInValue(v, _) => *v,
+        | ValueType::FadeInValue { value: v, .. } => *v,
     };
     view! {
         <div>

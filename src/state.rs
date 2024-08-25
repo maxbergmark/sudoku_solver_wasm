@@ -28,10 +28,11 @@ pub enum Cell {
     FixedValue {
         value: u8,
     },
-    FadeInValue {
+    AnimatedValue {
         value: u8,
         choices: [bool; 9],
-        fade_duration_ms: i32,
+        fade_delay_ms: i32,
+        animation: &'static str,
     },
     Error {
         value: u8,
@@ -124,7 +125,7 @@ impl From<&SudokuData> for Sudoku {
                     Cell::Empty { .. } => {}
                     Cell::Value { value, .. }
                     | Cell::FixedValue { value }
-                    | Cell::FadeInValue { value, .. }
+                    | Cell::AnimatedValue { value, .. }
                     | Cell::Error { value, .. } => {
                         sudoku.place(idx, *value as usize);
                     }
@@ -177,23 +178,24 @@ impl SudokuData {
             Cell::Value { .. }
             | Cell::FixedValue { .. }
             | Cell::Error { .. }
-            | Cell::FadeInValue { .. } => {}
+            | Cell::AnimatedValue { .. } => {}
         }
     }
 
-    pub fn set_fade(&mut self, row: usize, col: usize, value: u8, fade_duration_ms: i32) {
+    pub fn set_fade(&mut self, row: usize, col: usize, value: u8, fade_delay_ms: i32) {
         match self.rows[row].cells[col] {
             Cell::Empty { .. } => {
-                self.rows[row].cells[col] = Cell::FadeInValue {
+                self.rows[row].cells[col] = Cell::AnimatedValue {
                     value,
                     choices: [false; 9],
-                    fade_duration_ms,
+                    fade_delay_ms,
+                    animation: "fade-in",
                 };
             }
             Cell::Value { .. }
             | Cell::FixedValue { .. }
             | Cell::Error { .. }
-            | Cell::FadeInValue { .. } => {}
+            | Cell::AnimatedValue { .. } => {}
         }
     }
 
@@ -202,7 +204,7 @@ impl SudokuData {
             Cell::Empty { .. } | Cell::FixedValue { .. } => {}
             Cell::Value { choices, .. }
             | Cell::Error { choices, .. }
-            | Cell::FadeInValue { choices, .. } => {
+            | Cell::AnimatedValue { choices, .. } => {
                 self.rows[row].cells[col] = Cell::Empty { choices };
                 let sudoku = Sudoku::from(&*self);
                 update_from_sudoku(self, &sudoku, false);
@@ -235,7 +237,7 @@ impl SudokuData {
                     Cell::Empty { .. }
                     | Cell::Value { .. }
                     | Cell::Error { .. }
-                    | Cell::FadeInValue { .. } => {}
+                    | Cell::AnimatedValue { .. } => {}
                     Cell::FixedValue { value } => {
                         sudoku.place(idx, *value as usize);
                     }
@@ -299,7 +301,7 @@ impl Display for SudokuData {
                 match cell {
                     Cell::Empty { .. } => write!(f, ".")?,
                     Cell::Value { value, .. }
-                    | Cell::FadeInValue { value, .. }
+                    | Cell::AnimatedValue { value, .. }
                     | Cell::FixedValue { value, .. }
                     | Cell::Error { value, .. } => {
                         write!(f, "{value}")?;

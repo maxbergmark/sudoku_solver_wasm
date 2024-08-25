@@ -115,7 +115,7 @@ pub fn toggle_digit_if_selected(game_state: &GameState, sudoku: &mut SudokuData,
             }
             Cell::Value { value, choices }
             | Cell::Error { value, choices }
-            | Cell::FadeInValue { value, choices, .. } => {
+            | Cell::AnimatedValue { value, choices, .. } => {
                 toggle_if_available(value, digit, &choices, sudoku, row, col);
             }
             Cell::FixedValue { .. } => {}
@@ -133,7 +133,7 @@ pub fn toggle_choice_if_selected(game_state: &GameState, sudoku: &mut SudokuData
             Cell::Value { .. }
             | Cell::Error { .. }
             | Cell::FixedValue { .. }
-            | Cell::FadeInValue { .. } => {}
+            | Cell::AnimatedValue { .. } => {}
         }
     }
 }
@@ -213,13 +213,23 @@ pub fn compare_with_solution(sudoku: &mut SudokuData) -> Result<()> {
         for j in 0..9 {
             let idx = 9 * i + j;
             let cell = sudoku.rows[i].cells[j];
-            if let Cell::Value { value, .. } = cell {
-                if value != solution.digits[idx] as u8 {
-                    sudoku.rows[i].cells[j] = Cell::Error {
-                        value,
-                        choices: to_choices(solution.bitboard[idx]),
-                    };
+            match cell {
+                Cell::Value { value, .. } | Cell::AnimatedValue { value, .. } => {
+                    if value == solution.digits[idx] as u8 {
+                        sudoku.rows[i].cells[j] = Cell::AnimatedValue {
+                            value,
+                            choices: to_choices(solution.bitboard[idx]),
+                            fade_delay_ms: 100,
+                            animation: "fade-green",
+                        };
+                    } else {
+                        sudoku.rows[i].cells[j] = Cell::Error {
+                            value,
+                            choices: to_choices(solution.bitboard[idx]),
+                        };
+                    }
                 }
+                _ => {}
             }
         }
     }

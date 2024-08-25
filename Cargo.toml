@@ -10,6 +10,7 @@ leptos = { version = "0.6.13", features = ["csr", "nightly"] }
 # leptos_hotkeys = { version = "0.2.2", features = ["debug"] }
 leptos_hotkeys = { git = "https://github.com/maxbergmark/leptos-hotkeys.git", branch = "bugfix/prevent-multiple-key-events", features = [
     "debug",
+    "event_key",
 ] }
 
 leptos_meta = { version = "0.6.13", features = ["csr", "nightly"] }
