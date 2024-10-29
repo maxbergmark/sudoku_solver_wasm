@@ -212,7 +212,7 @@ pub fn compare_with_solution(sudoku: &mut SudokuData) -> Result<()> {
     for i in 0..9 {
         for j in 0..9 {
             let idx = 9 * i + j;
-            let cell = sudoku.rows[i].cells[j];
+            let cell = sudoku.rows[i].cells[j].clone();
             match cell {
                 Cell::Value { value, .. } | Cell::AnimatedValue { value, .. } => {
                     if value == solution.digits[idx] as u8 {
@@ -220,7 +220,7 @@ pub fn compare_with_solution(sudoku: &mut SudokuData) -> Result<()> {
                             value,
                             choices: to_choices(solution.bitboard[idx]),
                             fade_delay_ms: 100,
-                            animation: "fade-green",
+                            animation: "fade-green".to_string(),
                         };
                     } else {
                         sudoku.rows[i].cells[j] = Cell::Error {

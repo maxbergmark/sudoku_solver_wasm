@@ -4,21 +4,28 @@ use crate::{
     Result,
 };
 use rust_sudoku_solver::Sudoku;
-use std::fmt::Display;
+use serde::{Deserialize, Serialize, Serializer};
+use serde_compact::compact;
+use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, Default, Clone)]
+#[compact]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SudokuData {
     pub rows: [SudokuRow; 9],
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[compact]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SudokuRow {
     pub cells: [Cell; 9],
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[compact]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Cell {
     Empty {
+        #[serde(serialize_with = "serialize_to_int")]
+        #[serde(deserialize_with = "deserialize_from_int")]
         choices: [bool; 9],
     },
     Value {
@@ -32,12 +39,45 @@ pub enum Cell {
         value: u8,
         choices: [bool; 9],
         fade_delay_ms: i32,
-        animation: &'static str,
+        animation: String,
     },
     Error {
         value: u8,
         choices: [bool; 9],
     },
+}
+
+fn serialize_to_int<S>(arr: &[bool; 9], serializer: S) -> std::result::Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_u16(to_int(arr))
+}
+
+fn deserialize_from_int<'de, D>(deserializer: D) -> std::result::Result<[bool; 9], D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = u16::deserialize(deserializer)?;
+    Ok(from_int(value))
+}
+
+fn to_int(arr: &[bool; 9]) -> u16 {
+    let mut result = 0;
+    for (i, &b) in arr.iter().enumerate() {
+        if b {
+            result |= 1 << i;
+        }
+    }
+    result
+}
+
+fn from_int(value: u16) -> [bool; 9] {
+    let mut result = [false; 9];
+    (0..9).for_each(|i| {
+        result[i] = (value & (1 << i)) != 0;
+    });
+    result
 }
 
 impl Default for Cell {
@@ -67,7 +107,7 @@ impl DigitMode {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[allow(clippy::module_name_repetitions)]
 pub struct GameState {
     pub active_cell: Option<(usize, usize)>,
@@ -75,7 +115,7 @@ pub struct GameState {
     pub dark_mode: DarkMode,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub enum DarkMode {
     Light,
     #[default]
@@ -102,6 +142,23 @@ impl DarkMode {
     }
 }
 
+impl FromStr for GameState {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let mut game_state = Self::default();
+        let mut chars = s.chars();
+        if let Some(c) = chars.next() {
+            match c {
+                'l' => game_state.dark_mode = DarkMode::Light,
+                'd' => game_state.dark_mode = DarkMode::Dark,
+                _ => return Err(crate::Error::GenerateSudoku),
+            }
+        }
+        Ok(game_state)
+    }
+}
+
 impl GameState {
     pub fn show_result(&mut self, result: Result<impl Display>) {
         match result {
@@ -112,6 +169,15 @@ impl GameState {
 
     pub fn is_active_cell(&self, row: usize, col: usize) -> bool {
         self.active_cell.is_some() && self.active_cell == Some((row, col))
+    }
+}
+
+impl Display for GameState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.dark_mode {
+            DarkMode::Light => write!(f, "l"),
+            DarkMode::Dark => write!(f, "d"),
+        }
     }
 }
 
@@ -157,6 +223,30 @@ impl From<&Sudoku> for SudokuData {
     }
 }
 
+impl FromStr for SudokuData {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let mut data = Self::default();
+        let mut chars = s.chars();
+        for row in &mut data.rows {
+            for cell in &mut row.cells {
+                let c = chars.next().ok_or(crate::Error::GenerateSudoku)?;
+                match c {
+                    '.' => *cell = Cell::Empty { choices: [true; 9] },
+                    '1'..='9' => {
+                        *cell = Cell::FixedValue {
+                            value: c.to_digit(10).ok_or(crate::Error::GenerateSudoku)? as u8,
+                        }
+                    }
+                    _ => return Err(crate::Error::GenerateSudoku),
+                }
+            }
+        }
+        Ok(data)
+    }
+}
+
 impl SudokuData {
     pub fn set(&mut self, row: usize, col: usize, value: u8, fixed: bool) {
         match self.rows[row].cells[col] {
@@ -189,7 +279,7 @@ impl SudokuData {
                     value,
                     choices: [false; 9],
                     fade_delay_ms,
-                    animation: "fade-in",
+                    animation: "fade-in".to_string(),
                 };
             }
             Cell::Value { .. }
@@ -220,8 +310,8 @@ impl SudokuData {
         }
     }
 
-    pub const fn get(&self, row: usize, col: usize) -> Cell {
-        self.rows[row].cells[col]
+    pub fn get(&self, row: usize, col: usize) -> Cell {
+        self.rows[row].cells[col].clone()
     }
 
     pub fn get_mut(&mut self, row: usize, col: usize) -> &mut Cell {
@@ -309,6 +399,26 @@ impl Display for SudokuData {
                 };
             }
         }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::panic_in_result_fn)]
+mod tests {
+    use std::error::Error;
+
+    use super::*;
+
+    type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+    #[test]
+    fn test_serialize_sudoku_data() -> Result<()> {
+        let data = SudokuData::default();
+        let serialized = serde_json::to_string(&data)?;
+        // dbg!(&serialized);
+        // dbg!(&serialized.len());
+        assert!(serialized.len() < 4000);
         Ok(())
     }
 }
