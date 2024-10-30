@@ -30,6 +30,8 @@ pub enum Cell {
     },
     Value {
         value: u8,
+        #[serde(serialize_with = "serialize_to_int")]
+        #[serde(deserialize_with = "deserialize_from_int")]
         choices: [bool; 9],
     },
     FixedValue {
@@ -37,12 +39,16 @@ pub enum Cell {
     },
     AnimatedValue {
         value: u8,
+        #[serde(serialize_with = "serialize_to_int")]
+        #[serde(deserialize_with = "deserialize_from_int")]
         choices: [bool; 9],
         fade_delay_ms: i32,
         animation: String,
     },
     Error {
         value: u8,
+        #[serde(serialize_with = "serialize_to_int")]
+        #[serde(deserialize_with = "deserialize_from_int")]
         choices: [bool; 9],
     },
 }
