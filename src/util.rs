@@ -17,22 +17,6 @@ pub fn unwrap_or_panic<T>(signal: Option<RwSignal<T>>) -> RwSignal<T> {
     })
 }
 
-// #[allow(clippy::panic)]
-// pub fn unwrap_write_or_panic<T>(signal: Option<WriteSignal<T>>) -> WriteSignal<T> {
-//     signal.unwrap_or_else(|| {
-//         console_error("Component not available");
-//         panic!("Component not available");
-//     })
-// }
-
-// #[allow(clippy::panic)]
-// pub fn unwrap_read_or_panic<T>(signal: Option<Signal<T>>) -> Signal<T> {
-//     signal.unwrap_or_else(|| {
-//         console_error("Component not available");
-//         panic!("Component not available");
-//     })
-// }
-
 pub fn unwrap_params(params: &Result<SudokuParams, ParamsError>) -> Sudoku {
     params
         .as_ref()
@@ -114,6 +98,10 @@ const fn get_letter(idx: usize) -> Option<char> {
         26..=52 => Some(('A' as usize + idx - 26) as u8 as char),
         _ => None,
     }
+}
+
+pub fn sudokus_equal(s1: &Sudoku, s2: &Sudoku) -> bool {
+    s1.digits == s2.digits
 }
 
 #[cfg(test)]

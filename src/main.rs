@@ -31,12 +31,13 @@
 use codee::string::JsonSerdeCodec;
 use hotkeys::setup_hotkeys;
 use leptos::create_rw_signal;
-use leptos::leptos_dom::logging::console_log;
 use leptos::provide_context;
+use leptos::RwSignal;
 use leptos::SignalGetUntracked;
 use leptos::SignalSet;
 use leptos_hotkeys::{provide_hotkeys_context, scopes, HotkeysContext};
-use leptos_use::use_cookie;
+use leptos_use::use_cookie_with_options;
+use leptos_use::UseCookieOptions;
 use state::GameState;
 use state::SudokuData;
 use sudoku::SudokuGame;
@@ -65,47 +66,15 @@ fn App() -> impl IntoView {
 
     let main_ref = create_node_ref::<html::Main>();
     let HotkeysContext { .. } = provide_hotkeys_context(main_ref, false, scopes!());
-    let (sudoku_data_cookie, set_sudoku_data_cookie) =
-        use_cookie::<SudokuData, JsonSerdeCodec>("sudoku_data");
-    let (game_state_cookie, _set_game_state_cookie) =
-        use_cookie::<GameState, JsonSerdeCodec>("game_state");
 
-    console_log(format!("cookie: {:?}", sudoku_data_cookie.get_untracked()).as_str());
-    console_log(format!("cookie: {:?}", game_state_cookie.get_untracked()).as_str());
-    let sudoku_data = create_rw_signal(sudoku_data_cookie.get_untracked().unwrap_or_default());
-    let game_state = create_rw_signal(game_state_cookie.get_untracked().unwrap_or_default());
-    // create derived signals without the Option
-    console_log(format!("signal: {:}", sudoku_data.get_untracked()).as_str());
+    let (sudoku_data, sudoku_data_callback) = setup_sudoku_data();
+    let (game_state, game_state_callback) = setup_game_state();
 
-    // let reset_sudoku = move || set_sudoku_data_cookie.set(Some(SudokuData::default()));
-    // let reset_state = move || set_game_state_cookie.set(Some(GameState::default()));
-
-    // if sudoku_data_cookie.get_untracked().is_none() {
-    //     reset_sudoku();
-    // }
-
-    // if game_state_cookie.get_untracked().is_none() {
-    //     reset_state();
-    // }
-
-    provide_context(game_state);
-    // provide_context(set_game_state);
-    provide_context(sudoku_data);
-    // provide_context(set_sudoku_data);
     setup_hotkeys(game_state, sudoku_data);
-    // set_sudoku_data_cookie.set(Some(sudoku_data.get()));
-    // console_log(format!("{:?}", game_state()).as_str());
-    // set_game_state_cookie.set(Some(game_state()));
 
     view! {
-        {move || {
-            console_log("Updating cookies");
-            console_log(sudoku_data().to_string().as_str());
-            set_sudoku_data_cookie.set(Some(sudoku_data()));
-            console_log(
-                format!("cookie after update: {:?}", sudoku_data_cookie.get_untracked()).as_str(),
-            );
-        }}
+        {sudoku_data_callback}
+        {game_state_callback}
         <div class=move || game_state().dark_mode.class() on:click=move |_| {}>
             <Router>
                 <main _ref=main_ref>
@@ -124,6 +93,32 @@ fn App() -> impl IntoView {
     }
 }
 
+fn setup_sudoku_data() -> (RwSignal<SudokuData>, impl Fn()) {
+    let (sudoku_data_cookie, set_sudoku_data_cookie) =
+        use_cookie_with_options::<SudokuData, JsonSerdeCodec>(
+            "sudoku_data",
+            UseCookieOptions::default().path("/"),
+        );
+    let sudoku_data = create_rw_signal(sudoku_data_cookie.get_untracked().unwrap_or_default());
+    provide_context(sudoku_data);
+    (sudoku_data, move || {
+        set_sudoku_data_cookie.set(Some(sudoku_data()));
+    })
+}
+
+fn setup_game_state() -> (RwSignal<GameState>, impl Fn()) {
+    let (game_state_cookie, set_game_state_cookie) =
+        use_cookie_with_options::<GameState, JsonSerdeCodec>(
+            "game_state",
+            UseCookieOptions::default().path("/"),
+        );
+
+    let game_state = create_rw_signal(game_state_cookie.get_untracked().unwrap_or_default());
+    provide_context(game_state);
+    (game_state, move || {
+        set_game_state_cookie.set(Some(game_state()));
+    })
+}
 fn main() {
     console_error_panic_hook::set_once();
     mount_to_body(|| view! { <App /> });

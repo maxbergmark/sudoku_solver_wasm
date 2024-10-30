@@ -3,7 +3,7 @@ use crate::state::{Cell, GameState, SudokuData};
 use crate::ui::{
     DarkModeToggle, DigitDisplay, GeneratorShortcuts, KeyboardShortcuts, SudokuDisplay,
 };
-use crate::util::{unwrap_or_panic, unwrap_params, SudokuParams};
+use crate::util::{sudokus_equal, unwrap_or_panic, unwrap_params, SudokuParams};
 
 use leptos::{
     component, create_memo, use_context, view, IntoView, RwSignal, SignalUpdate, SignalWith,
@@ -12,17 +12,16 @@ use leptos_router::use_query;
 
 #[component]
 pub fn SudokuGame() -> impl IntoView {
-    // let sudoku_data = unwrap_read_or_panic(use_context::<Signal<Option<SudokuData>>>());
     let sudoku_data = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
     let params = use_query::<SudokuParams>();
     let sudoku = move || params.with(unwrap_params);
     let update = move |data: &mut SudokuData| {
-        if rust_sudoku_solver::solve(sudoku()).is_ok() {
+        if !sudokus_equal(&data.fixed_sudoku(), &sudoku())
+            && rust_sudoku_solver::solve(sudoku()).is_ok()
+        {
             data.clear();
             update_from_sudoku(data, &sudoku(), true);
         }
-        // data.clear();
-        // update_from_sudoku(data, &sudoku(), true);
     };
     view! {
         {move || sudoku_data.update(update)}
