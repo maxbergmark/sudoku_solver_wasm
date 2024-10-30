@@ -1,5 +1,6 @@
 use crate::actions::update_from_sudoku;
-use crate::state::{Cell, GameState, SudokuData};
+use crate::state::GameState;
+use crate::sudoku_data::{Cell, SudokuData};
 use crate::ui::{
     DarkModeToggle, DigitDisplay, GeneratorShortcuts, KeyboardShortcuts, SudokuDisplay,
 };

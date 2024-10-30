@@ -39,7 +39,6 @@ use leptos_hotkeys::{provide_hotkeys_context, scopes, HotkeysContext};
 use leptos_use::use_cookie_with_options;
 use leptos_use::UseCookieOptions;
 use state::GameState;
-use state::SudokuData;
 use sudoku::SudokuGame;
 
 use leptos::{component, create_node_ref, html, mount_to_body, view, IntoView};
@@ -54,11 +53,13 @@ mod generator;
 mod hotkeys;
 mod state;
 mod sudoku;
+mod sudoku_data;
 mod ui;
 mod util;
 
 pub use error::Error;
 pub use error::Result;
+use sudoku_data::SudokuData;
 
 #[component]
 fn App() -> impl IntoView {

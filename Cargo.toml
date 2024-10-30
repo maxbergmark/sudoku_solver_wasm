@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-codee = { version = "0.2.0", features = ["json_serde"] }
+codee = { version = "0.2.0", features = ["json_serde", "bincode_serde"] }
 console_error_panic_hook = "0.1.7"
 derive_more = "0.99.18"
 leptos = { version = "0.6.13", features = ["csr", "nightly"] }

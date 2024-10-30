@@ -10,7 +10,8 @@ use rust_sudoku_solver::{solver, Sudoku};
 use web_time::Instant;
 
 use crate::generator::{get_random_sudoku, Difficulty};
-use crate::state::{Cell, GameState, SudokuData};
+use crate::state::GameState;
+use crate::sudoku_data::{Cell, SudokuData};
 use crate::util::compress_string;
 use crate::Result;
 

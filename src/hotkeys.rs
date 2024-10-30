@@ -8,7 +8,8 @@ use crate::{
         solve_sudoku, toggle_choice_if_selected, toggle_digit_if_selected, verify_sudoku,
     },
     generator::Difficulty,
-    state::{DigitMode, GameState, SudokuData},
+    state::{DigitMode, GameState},
+    sudoku_data::SudokuData,
     Result,
 };
 

@@ -9,7 +9,8 @@ use crate::{
     },
     generator::Difficulty,
     hotkeys::{get_generator_hotkeys, get_solver_hotkeys},
-    state::{DigitMode, GameState, SudokuData},
+    state::{DigitMode, GameState},
+    sudoku_data::SudokuData,
     util::unwrap_or_panic,
 };
 
