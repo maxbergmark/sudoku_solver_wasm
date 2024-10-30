@@ -156,11 +156,11 @@ fn KeyButton(key: &'static str) -> impl IntoView {
 
 #[component]
 pub fn KeyboardShortcuts() -> impl IntoView {
-    let sudoku = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
-    let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
+    let set_sudoku = unwrap_or_panic(use_context::<RwSignal<SudokuData>>());
+    let set_game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
 
     let with_signals = move |f: fn(&mut SudokuData) -> crate::Result<String>| {
-        apply_solution(game_state, sudoku, f)
+        apply_solution(set_game_state, set_sudoku, f)
     };
 
     view! {

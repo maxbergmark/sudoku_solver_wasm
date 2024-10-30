@@ -100,6 +100,10 @@ const fn get_letter(idx: usize) -> Option<char> {
     }
 }
 
+pub fn sudokus_equal(s1: &Sudoku, s2: &Sudoku) -> bool {
+    s1.digits == s2.digits
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;

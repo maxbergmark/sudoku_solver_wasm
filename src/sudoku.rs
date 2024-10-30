@@ -3,7 +3,7 @@ use crate::state::{Cell, GameState, SudokuData};
 use crate::ui::{
     DarkModeToggle, DigitDisplay, GeneratorShortcuts, KeyboardShortcuts, SudokuDisplay,
 };
-use crate::util::{unwrap_or_panic, unwrap_params, SudokuParams};
+use crate::util::{sudokus_equal, unwrap_or_panic, unwrap_params, SudokuParams};
 
 use leptos::{
     component, create_memo, use_context, view, IntoView, RwSignal, SignalUpdate, SignalWith,
@@ -16,8 +16,12 @@ pub fn SudokuGame() -> impl IntoView {
     let params = use_query::<SudokuParams>();
     let sudoku = move || params.with(unwrap_params);
     let update = move |data: &mut SudokuData| {
-        data.clear();
-        update_from_sudoku(data, &sudoku(), true);
+        if !sudokus_equal(&data.fixed_sudoku(), &sudoku())
+            && rust_sudoku_solver::solve(sudoku()).is_ok()
+        {
+            data.clear();
+            update_from_sudoku(data, &sudoku(), true);
+        }
     };
     view! {
         {move || sudoku_data.update(update)}
@@ -88,8 +92,9 @@ fn SudokuBoxRow(row: usize, idx: usize) -> impl IntoView {
 #[component]
 fn SudokuCell(row: usize, col: usize) -> impl IntoView {
     let game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
+    let set_game_state = unwrap_or_panic(use_context::<RwSignal<GameState>>());
     let on_click = move |_| {
-        game_state.update(|state| {
+        set_game_state.update(|state| {
             state.active_cell = Some((row, col));
         });
     };
@@ -165,7 +170,7 @@ fn render_cell(cell: &Cell) -> leptos::HtmlElement<leptos::html::Div> {
         } => render_value(&ValueType::FadeInValue {
             value: *value,
             fade_delay_ms: *fade_delay_ms,
-            animation,
+            animation: animation.clone(),
         }),
         Cell::FixedValue { value } => render_value(&ValueType::FixedValue(*value)),
         Cell::Error { value, .. } => render_value(&ValueType::Error(*value)),
@@ -177,7 +182,7 @@ enum ValueType {
     FadeInValue {
         value: u8,
         fade_delay_ms: i32,
-        animation: &'static str,
+        animation: String,
     },
     FixedValue(u8),
     Error(u8),
